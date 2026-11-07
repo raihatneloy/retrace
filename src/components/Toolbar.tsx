@@ -32,7 +32,7 @@ export function Toolbar({
 
   return (
     <div className="pointer-events-none relative z-10 flex w-full justify-center px-2 py-2">
-      <div className="pointer-events-auto w-full max-w-3xl rounded-xl border border-black/10 bg-white/95 shadow-sm backdrop-blur">
+      <div className="pointer-events-auto w-full max-w-3xl rounded-xl border border-black/10 bg-white/95 text-neutral-900 shadow-sm backdrop-blur">
         <div className="flex flex-wrap items-center gap-2 p-2">
           <button
             type="button"
@@ -79,7 +79,7 @@ export function Toolbar({
           </button>
           {/* Its own line: on a phone the buttons need the width. The idle hint
               is desktop-only — on a phone it costs height for nothing. */}
-          <span className="order-last w-full truncate text-xs opacity-60">
+          <span className="order-last w-full truncate text-xs text-neutral-600">
             <span className={status.kind === "idle" ? "hidden sm:inline" : "hidden"}>
               Draw or photograph a diagram — get real, editable shapes back.
             </span>
@@ -90,13 +90,13 @@ export function Toolbar({
         {open && (
           <div className="grid gap-2 border-t border-black/10 p-3 text-xs sm:grid-cols-2">
             <label className="grid gap-1">
-              <span className="opacity-60">Provider</span>
+              <span className="text-neutral-600">Provider</span>
               <select
                 value={settings.provider}
                 onChange={(e) =>
                   set({ provider: e.target.value as ProviderId, model: "", baseUrl: "" })
                 }
-                className="rounded border border-black/15 px-2 py-1.5"
+                className="rounded border border-black/15 bg-white px-2 py-1.5 text-neutral-900"
               >
                 {PROVIDER_IDS.map((id) => (
                   <option key={id} value={id}>
@@ -107,19 +107,19 @@ export function Toolbar({
             </label>
 
             <label className="grid gap-1">
-              <span className="opacity-60">
+              <span className="text-neutral-600">
                 Model{spec.defaultModel ? ` (default ${spec.defaultModel})` : " (required)"}
               </span>
               <input
                 value={settings.model}
                 placeholder={spec.defaultModel ?? "e.g. llama3.2-vision"}
                 onChange={(e) => set({ model: e.target.value })}
-                className="rounded border border-black/15 px-2 py-1.5"
+                className="rounded border border-black/15 bg-white px-2 py-1.5 text-neutral-900"
               />
             </label>
 
             <label className="grid gap-1">
-              <span className="opacity-60">API key — stays in this browser</span>
+              <span className="text-neutral-600">API key — stays in this browser</span>
               <input
                 type="password"
                 autoComplete="off"
@@ -128,23 +128,23 @@ export function Toolbar({
                 onChange={(e) =>
                   set({ keys: { ...settings.keys, [settings.provider]: e.target.value } })
                 }
-                className="rounded border border-black/15 px-2 py-1.5 font-mono"
+                className="rounded border border-black/15 bg-white px-2 py-1.5 font-mono text-neutral-900 placeholder:text-neutral-400"
               />
             </label>
 
             <label className="grid gap-1">
-              <span className="opacity-60">
+              <span className="text-neutral-600">
                 Base URL{spec.requiresBaseUrl ? " (required)" : " (optional)"}
               </span>
               <input
                 value={settings.baseUrl}
                 placeholder={spec.defaultBaseUrl ?? "https://your-endpoint/v1"}
                 onChange={(e) => set({ baseUrl: e.target.value })}
-                className="rounded border border-black/15 px-2 py-1.5 font-mono"
+                className="rounded border border-black/15 bg-white px-2 py-1.5 font-mono text-neutral-900 placeholder:text-neutral-400"
               />
             </label>
 
-            <p className="sm:col-span-2 opacity-60">
+            <p className="sm:col-span-2 text-neutral-600">
               Get a key:{" "}
               <a className="underline" href={spec.docsUrl} target="_blank" rel="noreferrer">
                 {spec.docsUrl}
