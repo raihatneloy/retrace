@@ -9,12 +9,21 @@ type Props = {
   settings: Settings;
   onChange: (next: Settings) => void;
   onConvert: (file: File) => void;
+  onRetraceDrawing: () => void;
   onExample: () => void;
   busy: boolean;
   status: { kind: "idle" | "ok" | "error"; text: string };
 };
 
-export function Toolbar({ settings, onChange, onConvert, onExample, busy, status }: Props) {
+export function Toolbar({
+  settings,
+  onChange,
+  onConvert,
+  onRetraceDrawing,
+  onExample,
+  busy,
+  status,
+}: Props) {
   const [open, setOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const spec = PROVIDERS[settings.provider];
@@ -44,6 +53,15 @@ export function Toolbar({ settings, onChange, onConvert, onExample, busy, status
               e.target.value = "";
             }}
           />
+          <button
+            type="button"
+            onClick={onRetraceDrawing}
+            disabled={busy}
+            title="Convert the strokes you drew on this canvas into real shapes"
+            className="rounded-lg border border-black/20 px-2.5 py-2 text-sm disabled:opacity-40"
+          >
+            Retrace drawing
+          </button>
           <button
             type="button"
             onClick={onExample}

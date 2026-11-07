@@ -11,11 +11,14 @@ drew. Native elements, in the positions you drew them.
 
 ## Status
 
-Working end to end for a **sketch image**: upload a photo or drawing, and real
-editable elements appear on the canvas. Freedraw-on-canvas and chat come next.
+Working end to end both ways in: **draw on the canvas** and press *Retrace
+drawing*, or **upload a photo** of a sketch. Either path lands real, editable
+elements where you drew them. Chat comes next.
 
 **Working today**
 
+- Draw with the pen tool → *Retrace drawing* → your strokes are replaced by real
+  shapes in the same positions, in one undo step
 - Upload a sketch → `DiagramGraph` → native Excalidraw elements, in one undo step
 - BYOK across OpenAI, Anthropic, Google Gemini, OpenRouter, OpenCode Zen, and any
   OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, LiteLLM)
@@ -29,7 +32,6 @@ editable elements appear on the canvas. Freedraw-on-canvas and chat come next.
 
 **Not built yet**
 
-- Draw on the canvas and press "Retrace" on your own freedraw strokes
 - Chat: describe a diagram, get one
 - Scene persistence and share links
 

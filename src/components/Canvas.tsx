@@ -8,11 +8,13 @@ import type {
   ExcalidrawImperativeAPI,
   ExcalidrawInitialDataState,
 } from "@excalidraw/excalidraw/types";
+import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 import demoGraph from "../../fixtures/graph-sketch2.json";
 import { DiagramGraph } from "@/lib/diagram/schema";
 import { IDENTITY_TRANSFORM } from "@/lib/diagram/layout";
 import { graphToElements } from "@/lib/diagram/to-elements";
+import { rasterizeDrawing } from "@/lib/diagram/rasterize";
 import {
   loadSettings,
   saveSettings,
@@ -63,20 +65,7 @@ export function Canvas() {
         const { dataUrl, width, height } = await readImage(file);
 
         setStatus({ kind: "idle", text: "Reading the sketch…" });
-        const res = await fetch("/api/diagram", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            provider: settings.provider,
-            model: settings.model || undefined,
-            apiKey: settings.keys[settings.provider] || undefined,
-            baseUrl: settings.baseUrl || undefined,
-            image: { dataUrl, width, height },
-          }),
-        });
-
-        const payload = await res.json();
-        if (!res.ok) throw new Error(payload.error ?? `request failed (${res.status})`);
+        const payload = await requestGraph(settings, { image: { dataUrl, width, height } });
 
         const graph = DiagramGraph.parse(payload.graph);
         const { elements, warnings } = await graphToElements(
@@ -111,12 +100,64 @@ export function Canvas() {
     [settings],
   );
 
+  const retraceDrawing = useCallback(async () => {
+    const api = apiRef.current;
+    if (!api) return;
+
+    const all = api.getSceneElements() as ExcalidrawElement[];
+    const selectedIds = api.getAppState().selectedElementIds as Record<string, unknown>;
+    const freedraw = all.filter((el) => el.type === "freedraw");
+    const selected = freedraw.filter((el) => selectedIds?.[el.id]);
+    // A selection wins; otherwise retrace everything drawn by hand.
+    const targets = selected.length ? selected : freedraw;
+
+    if (!targets.length) {
+      setStatus({ kind: "error", text: "Draw something with the pen tool first." });
+      return;
+    }
+
+    setBusy(true);
+    setStatus({ kind: "idle", text: "Rendering your drawing…" });
+    try {
+      const raster = await rasterizeDrawing(targets);
+
+      setStatus({ kind: "idle", text: "Reading the drawing…" });
+      const payload = await requestGraph(settings, {
+        image: { dataUrl: raster.dataUrl, width: raster.width, height: raster.height },
+      });
+
+      const graph = DiagramGraph.parse(payload.graph);
+      const { elements, warnings } = await graphToElements(graph, raster.transform);
+
+      // Replace only the strokes we consumed; everything else stays put.
+      const consumed = new Set(targets.map((el) => el.id));
+      const kept = all.filter((el) => !consumed.has(el.id));
+      const next = [...kept, ...elements];
+      api.updateScene({ elements: next, captureUpdate: "IMMEDIATELY" });
+      api.scrollToContent(next, { fitToContent: true });
+
+      setStatus({
+        kind: "ok",
+        text: `Retraced ${targets.length} stroke${targets.length === 1 ? "" : "s"} into ${
+          graph.nodes.length
+        } shape${graph.nodes.length === 1 ? "" : "s"}${
+          warnings.length ? ` · ${warnings[0]}` : ""
+        }`,
+      });
+    } catch (err) {
+      setStatus({ kind: "error", text: (err as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  }, [settings]);
+
   return (
     <div className="relative h-dvh w-full">
       <Toolbar
         settings={settings}
         onChange={update}
         onConvert={convert}
+        onRetraceDrawing={retraceDrawing}
         onExample={loadExample}
         busy={busy}
         status={status}
@@ -172,4 +213,27 @@ async function readImage(
     width: canvas.width,
     height: canvas.height,
   };
+}
+
+type GraphPayload = { graph: unknown; meta: { provider: string; model: string } };
+
+/** One place that knows how to talk to our own API, whichever door is open. */
+async function requestGraph(
+  settings: Settings,
+  body: { image?: { dataUrl: string; width: number; height: number }; prompt?: string },
+): Promise<GraphPayload> {
+  const res = await fetch("/api/diagram", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      provider: settings.provider,
+      model: settings.model || undefined,
+      apiKey: settings.keys[settings.provider] || undefined,
+      baseUrl: settings.baseUrl || undefined,
+      ...body,
+    }),
+  });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(payload.error ?? `request failed (${res.status})`);
+  return payload as GraphPayload;
 }
