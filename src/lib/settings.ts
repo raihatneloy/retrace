@@ -40,6 +40,36 @@ export function loadSettings(): Settings {
   }
 }
 
+/** Cached so `useSyncExternalStore` returns a stable reference between renders. */
+let cache: Settings | null = null;
+const listeners = new Set<() => void>();
+
+/** Client snapshot: localStorage, read once. */
+export function getSettings(): Settings {
+  if (!cache) cache = loadSettings();
+  return cache;
+}
+
+/** Server snapshot: never touch localStorage during SSR. */
+export function getServerSettings(): Settings {
+  return DEFAULT_SETTINGS;
+}
+
+export function subscribeSettings(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/** Writes and notifies. Kept separate from `saveSettings` so a render never
+ *  has to own the update. */
+export function updateSettings(next: Settings): void {
+  cache = next;
+  saveSettings(next);
+  for (const listener of listeners) listener();
+}
+
 export function saveSettings(settings: Settings): void {
   if (typeof window === "undefined") return;
   try {

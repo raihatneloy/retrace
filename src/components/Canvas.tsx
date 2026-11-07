@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import "@excalidraw/excalidraw/index.css";
 
@@ -16,9 +16,11 @@ import { IDENTITY_TRANSFORM } from "@/lib/diagram/layout";
 import { graphToElements } from "@/lib/diagram/to-elements";
 import { rasterizeDrawing } from "@/lib/diagram/rasterize";
 import {
-  loadSettings,
-  saveSettings,
+  getServerSettings,
+  getSettings,
+  subscribeSettings,
   transformForImage,
+  updateSettings,
   type Settings,
 } from "@/lib/settings";
 import { Toolbar } from "./Toolbar";
@@ -36,14 +38,16 @@ const EMPTY_SCENE: ExcalidrawInitialDataState = {
 };
 
 export function Canvas() {
-  const [settings, setSettings] = useState<Settings>(() => loadSettings());
+  // Read from localStorage through an external store rather than useState: a
+  // lazy initialiser would render the stored provider on the client and the
+  // default on the server, which is a hydration mismatch.
+  const settings = useSyncExternalStore(subscribeSettings, getSettings, getServerSettings);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle", text: "" });
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
   const update = useCallback((next: Settings) => {
-    setSettings(next);
-    saveSettings(next);
+    updateSettings(next);
   }, []);
 
   const loadExample = useCallback(async () => {
