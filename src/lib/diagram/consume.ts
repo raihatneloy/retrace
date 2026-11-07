@@ -1,4 +1,4 @@
-import type { SceneBox } from "./layout";
+import { centerOf, type SceneBox } from "./layout";
 
 /**
  * Deciding what the conversion actually replaced.
@@ -15,11 +15,26 @@ export type Region = { box: SceneBox };
 const PAD_NODE = 10;
 const PAD_EDGE = 34;
 
-const intersectArea = (a: SceneBox, b: SceneBox): number => {
-  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
-  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
-  return w > 0 && h > 0 ? w * h : 0;
-};
+/**
+ * Fraction of a stroke's area that falls inside any region, by sampling. Sampling
+ * a grid rather than summing intersections matters because corridors now consist
+ * of many overlapping boxes, and summing would count the same pixel repeatedly.
+ */
+function coveredRatio(stroke: SceneBox, regions: Region[]): number {
+  const N = 5;
+  let inside = 0;
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      const x = stroke.x + (stroke.w * (i + 0.5)) / N;
+      const y = stroke.y + (stroke.h * (j + 0.5)) / N;
+      const hit = regions.some(
+        (r) => x >= r.box.x && x <= r.box.x + r.box.w && y >= r.box.y && y <= r.box.y + r.box.h,
+      );
+      if (hit) inside++;
+    }
+  }
+  return inside / (N * N);
+}
 
 /** Groups strokes that belong to the same drawing, for reporting. */
 export function clusterStrokes(strokes: StrokeBox[], margin = 12): string[][] {
@@ -73,12 +88,23 @@ export function consumedRegions(
   edges: Array<{ from: SceneBox; to: SceneBox }>,
 ): Region[] {
   const regions: Region[] = nodeBoxes.map((box) => ({ box: pad(box, PAD_NODE) }));
+
+  // A corridor along the line, not the union of both node boxes. The union of a
+  // diagonal pair is a huge rectangle that swallows unrelated ink — that is how
+  // a horizontal arrow next to a diagonal edge got deleted with nothing to
+  // replace it.
   for (const { from, to } of edges) {
-    const x = Math.min(from.x, to.x);
-    const y = Math.min(from.y, to.y);
-    const w = Math.max(from.x + from.w, to.x + to.w) - x;
-    const h = Math.max(from.y + from.h, to.y + to.h) - y;
-    regions.push({ box: pad({ x, y, w, h }, PAD_EDGE) });
+    const a = centerOf(from);
+    const b = centerOf(to);
+    const steps = 16;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const cx = a.x + (b.x - a.x) * t;
+      const cy = a.y + (b.y - a.y) * t;
+      regions.push({
+        box: { x: cx - PAD_EDGE, y: cy - PAD_EDGE, w: PAD_EDGE * 2, h: PAD_EDGE * 2 },
+      });
+    }
   }
   return regions;
 }
@@ -105,10 +131,7 @@ export function strokesToConsume(
   const consume: string[] = [];
   const keep: string[] = [];
   for (const stroke of strokes) {
-    const area = Math.max(1, stroke.box.w * stroke.box.h);
-    let covered = 0;
-    for (const region of regions) covered += intersectArea(stroke.box, region.box);
-    (covered / area >= EXPLAINED ? consume : keep).push(stroke.id);
+    (coveredRatio(stroke.box, regions) >= EXPLAINED ? consume : keep).push(stroke.id);
   }
 
   return { consume, keep, clusters: clusterStrokes(strokes).length };

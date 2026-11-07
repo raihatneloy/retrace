@@ -152,7 +152,11 @@ def build(case):
 
 
 def main():
-    files = sorted(f for f in os.listdir(CORPUS) if f.endswith(".json") and f != "scenes")
+    files = sorted(
+        f
+        for f in os.listdir(CORPUS)
+        if f.endswith(".json") and not f.endswith(".scene.json")
+    )
     for f in files:
         with open(os.path.join(CORPUS, f)) as fh:
             case = json.load(fh)

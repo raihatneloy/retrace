@@ -244,7 +244,11 @@ export function graphToSkeleton(
   });
 
   clean.edges.forEach((edge, i) => {
-    if (!idOf.has(edge.from) || !idOf.has(edge.to)) return;
+    if (!idOf.has(edge.from) || !idOf.has(edge.to)) {
+      // One end was left unrecognised, so the arrow has nothing to attach to.
+      warnings.push("dropped an arrow whose endpoint was not recognised");
+      return;
+    }
     const a = boxes.get(edge.from)!;
     const b = boxes.get(edge.to)!;
     const { start, end } = edgeAnchors(a, b);

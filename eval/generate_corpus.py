@@ -94,6 +94,14 @@ class Sketch:
                 self._line(prev, p, amp=0.6, n=2)
             prev = p
 
+    def _cylinder(self, b):
+        x, y, w, h = b
+        ry = h * 0.16
+        self._ellipse((x, y, w, ry * 2))
+        self._ellipse((x, y + h - ry * 2, w, ry * 2))
+        self._line((x, y + ry), (x, y + h - ry))
+        self._line((x + w, y + ry), (x + w, y + h - ry))
+
     def _diamond(self, b):
         x, y, w, h = b
         pts = [(x + w / 2, y), (x + w, y + h / 2), (x + w / 2, y + h), (x, y + h / 2), (x + w / 2, y)]
@@ -132,6 +140,8 @@ class Sketch:
             self._ellipse(b)
         elif shape == "diamond":
             self._diamond(b)
+        elif shape == "cylinder":
+            self._cylinder(b)
         if label:
             tw = self.text_width(label, size)
             tx = x + (w - tw) / 2 if centred else x + 8
@@ -266,6 +276,22 @@ def case_wide_labels():
     s.save("wide-labels", "medium", "long labels in narrow boxes: wrapping traps")
 
 
+def case_multi_target():
+    """The reported drawing: two boxes and two databases, three arrows.
+
+    The horizontal arrow to the far database went missing in real use. This case
+    exists to tell whether the model drops it or the converter does."""
+    s = Sketch(1100, 700, 123)
+    front = s.node((80, 80, 240, 110), "Frontend")
+    back = s.node((150, 290, 300, 150), "Backend")
+    big = s.node((640, 250, 240, 210), "", shape="cylinder")
+    small = s.node((480, 520, 130, 120), "", shape="cylinder")
+    s.edge(front, back)
+    s.edge(back, big)
+    s.edge(back, small)
+    s.save("multi-target", "medium", "2 boxes + 2 databases, 3 arrows, only 2 labelled boxes")
+
+
 def case_unlabelled():
     """The real failure from testing: a bare box, a database cylinder and an
     arrow, with nothing written anywhere. Every other case had labels, which is
@@ -288,6 +314,7 @@ def main():
     case_no_edges()
     case_wide_labels()
     case_unlabelled()
+    case_multi_target()
     print("done")
 
 

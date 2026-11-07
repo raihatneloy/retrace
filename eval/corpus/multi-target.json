@@ -1,0 +1,76 @@
+{
+  "id": "multi-target",
+  "difficulty": "medium",
+  "notes": "2 boxes + 2 databases, 3 arrows, only 2 labelled boxes",
+  "image": "corpus/images/multi-target.png",
+  "width": 1100,
+  "height": 700,
+  "expected": {
+    "nodes": [
+      {
+        "id": "n1",
+        "label": "Frontend",
+        "shape": "rect",
+        "bbox": {
+          "x": 80,
+          "y": 80,
+          "w": 240,
+          "h": 110
+        }
+      },
+      {
+        "id": "n2",
+        "label": "Backend",
+        "shape": "rect",
+        "bbox": {
+          "x": 150,
+          "y": 290,
+          "w": 300,
+          "h": 150
+        }
+      },
+      {
+        "id": "n3",
+        "label": "",
+        "shape": "cylinder",
+        "bbox": {
+          "x": 640,
+          "y": 250,
+          "w": 240,
+          "h": 210
+        }
+      },
+      {
+        "id": "n4",
+        "label": "",
+        "shape": "cylinder",
+        "bbox": {
+          "x": 480,
+          "y": 520,
+          "w": 130,
+          "h": 120
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n1",
+        "to": "n2",
+        "label": null,
+        "style": "solid"
+      },
+      {
+        "from": "n2",
+        "to": "n3",
+        "label": null,
+        "style": "solid"
+      },
+      {
+        "from": "n2",
+        "to": "n4",
+        "label": null,
+        "style": "solid"
+      }
+    ]
+  }
+}

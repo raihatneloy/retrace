@@ -69,6 +69,25 @@ describe("strokesToConsume", () => {
     expect(decision.consume).toEqual(["box-stroke", "arrow"]);
   });
 
+  it("does not let a diagonal edge swallow a neighbouring arrow — the reported bug", () => {
+    // Backend with a diagonal edge down to a small database, and a horizontal
+    // arrow going right to a big database that the model missed. The union box
+    // of the diagonal pair used to cover the horizontal arrow, which then
+    // vanished with nothing to replace it.
+    const backend = box(150, 290, 300, 150);
+    const smallDb = box(480, 520, 130, 120);
+    const horizontalArrow = { id: "to-big-db", box: box(455, 355, 180, 30) };
+
+    const decision = strokesToConsume(
+      [{ id: "backend", box: backend }, horizontalArrow, { id: "small-db", box: smallDb }],
+      [backend, smallDb],
+      [{ from: backend, to: smallDb }],
+    );
+
+    expect(decision.keep).toContain("to-big-db");
+    expect(decision.consume).toContain("backend");
+  });
+
   it("keeps an icon inside a box that the model merged into it", () => {
     // The merged case: a database symbol inside a service box, reported as one
     // node. The symbol sits outside the reported bbox, so it survives.

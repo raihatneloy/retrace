@@ -138,7 +138,9 @@ export function scoreCase(
   const predictedNodes: TruthNode[] = predicted.nodes.map((n) => ({
     id: n.id,
     label: n.label,
-    shape: n.shape,
+    // A recognised symbol IS the shape: a cylinder reported as rect+symbol must
+    // not be scored as "you called it a rectangle".
+    shape: n.symbol ?? n.shape,
     bbox: toRasterPixels(n.bbox as BBox, t),
   }));
   const matches = matchNodes(truth.nodes, predictedNodes);
