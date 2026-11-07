@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "../../../fixtures/graph-sketch2.json";
 import { DiagramGraph } from "./schema";
 import { graphToSkeleton } from "./skeleton";
-import { IDENTITY_TRANSFORM, MIN_NODE_H, MIN_NODE_W } from "./layout";
+import { identityTransform, MIN_NODE_H, MIN_NODE_W } from "./layout";
 
 const graph = DiagramGraph.parse(fixture);
 
@@ -26,7 +26,7 @@ type S = {
 };
 
 describe("graph -> excalidraw skeleton", () => {
-  const { skeleton, warnings } = graphToSkeleton(graph, IDENTITY_TRANSFORM);
+  const { skeleton, warnings } = graphToSkeleton(graph, identityTransform());
   const sk = skeleton as unknown as S[];
   const byId = new Map<string, S>(sk.map((s) => [s.id, s]));
 
@@ -74,7 +74,7 @@ describe("graph -> excalidraw skeleton", () => {
   });
 
   it("is deterministic: same graph in, identical scene out", () => {
-    const again = graphToSkeleton(graph, IDENTITY_TRANSFORM);
+    const again = graphToSkeleton(graph, identityTransform());
     expect(JSON.stringify(again.skeleton)).toBe(JSON.stringify(skeleton));
   });
 
@@ -84,7 +84,7 @@ describe("graph -> excalidraw skeleton", () => {
         nodes: [{ id: "a", label: "only", shape: "rect", bbox: { x: 0, y: 0, w: 100, h: 60 } }],
         edges: [{ from: "a", to: "ghost" }, { from: "a", to: "a" }],
       }),
-      IDENTITY_TRANSFORM,
+      identityTransform(),
     );
     expect((broken.skeleton as unknown as S[]).filter((s) => s.type === "arrow")).toHaveLength(0);
     expect(broken.warnings[0]).toContain("dropped 2 arrow(s)");
@@ -96,7 +96,7 @@ describe("graph -> excalidraw skeleton", () => {
         nodes: [{ id: "a", label: "a", shape: "rect", bbox: { x: 0, y: 0, w: 4, h: 3 } }],
         edges: [],
       }),
-      IDENTITY_TRANSFORM,
+      identityTransform(),
     );
     const node = tiny.skeleton[0] as S;
     expect(node.width).toBe(MIN_NODE_W);
@@ -109,7 +109,7 @@ describe("graph -> excalidraw skeleton", () => {
         nodes: [{ id: "t", label: "retry 3x", shape: "text", bbox: { x: 10, y: 10, w: 90, h: 30 } }],
         edges: [],
       }),
-      IDENTITY_TRANSFORM,
+      identityTransform(),
     );
     expect((free.skeleton[0] as S).type).toBe("text");
     expect((free.skeleton[0] as S).text).toBe("retry 3x");
@@ -124,7 +124,7 @@ describe("graph -> excalidraw skeleton", () => {
         ],
         edges: [],
       }),
-      IDENTITY_TRANSFORM,
+      identityTransform(),
     );
     expect(stacked.warnings.join(" ")).toContain("overlap");
     // ...and the position is untouched: fidelity beats tidiness.
@@ -132,7 +132,7 @@ describe("graph -> excalidraw skeleton", () => {
   });
 
   it("maps raster pixels through the transform instead of assuming 1:1", () => {
-    const scaled = graphToSkeleton(graph, { scale: 2, originX: 1000, originY: 500 });
+    const scaled = graphToSkeleton(graph, { scale: 2, originX: 1000, originY: 500, imageWidth: 768, imageHeight: 300 });
     const scaledSk = scaled.skeleton as unknown as S[];
     const ingest = scaledSk.find((s) => s.id === "n-ingest-svc-0")!;
     expect(ingest.x).toBe(1040); // 70px at scale 2 => 1035, snapped to the grid (half rounds up)
@@ -148,7 +148,7 @@ describe("graph -> excalidraw skeleton", () => {
         ],
         edges: [],
       }),
-      IDENTITY_TRANSFORM,
+      identityTransform(),
     );
     const node = (narrow.skeleton as unknown as S[])[0];
     expect(node.width).toBeGreaterThan(100);

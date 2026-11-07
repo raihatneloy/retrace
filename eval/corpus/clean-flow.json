@@ -1,0 +1,76 @@
+{
+  "id": "clean-flow",
+  "difficulty": "easy",
+  "notes": "reference case: four boxes, three labelled arrows",
+  "image": "corpus/images/clean-flow.png",
+  "width": 1000,
+  "height": 560,
+  "expected": {
+    "nodes": [
+      {
+        "id": "n1",
+        "label": "api-gateway",
+        "shape": "rect",
+        "bbox": {
+          "x": 80,
+          "y": 90,
+          "w": 210,
+          "h": 90
+        }
+      },
+      {
+        "id": "n2",
+        "label": "auth",
+        "shape": "rect",
+        "bbox": {
+          "x": 380,
+          "y": 90,
+          "w": 180,
+          "h": 90
+        }
+      },
+      {
+        "id": "n3",
+        "label": "worker",
+        "shape": "rect",
+        "bbox": {
+          "x": 380,
+          "y": 300,
+          "w": 180,
+          "h": 90
+        }
+      },
+      {
+        "id": "n4",
+        "label": "postgres",
+        "shape": "rect",
+        "bbox": {
+          "x": 700,
+          "y": 300,
+          "w": 200,
+          "h": 90
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n1",
+        "to": "n2",
+        "label": "validate",
+        "style": "solid"
+      },
+      {
+        "from": "n2",
+        "to": "n3",
+        "label": "retry 3x",
+        "style": "solid"
+      },
+      {
+        "from": "n3",
+        "to": "n4",
+        "label": "write",
+        "style": "solid"
+      }
+    ]
+  }
+}

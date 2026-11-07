@@ -1,0 +1,42 @@
+{
+  "id": "wide-labels",
+  "difficulty": "medium",
+  "notes": "long labels in narrow boxes: wrapping traps",
+  "image": "corpus/images/wide-labels.png",
+  "width": 1000,
+  "height": 500,
+  "expected": {
+    "nodes": [
+      {
+        "id": "n1",
+        "label": "payment-service",
+        "shape": "rect",
+        "bbox": {
+          "x": 70,
+          "y": 140,
+          "w": 250,
+          "h": 90
+        }
+      },
+      {
+        "id": "n2",
+        "label": "ledger",
+        "shape": "rect",
+        "bbox": {
+          "x": 420,
+          "y": 140,
+          "w": 250,
+          "h": 90
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n1",
+        "to": "n2",
+        "label": "post-ledger",
+        "style": "solid"
+      }
+    ]
+  }
+}

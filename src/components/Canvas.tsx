@@ -12,7 +12,7 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 import demoGraph from "../../fixtures/graph-sketch2.json";
 import { DiagramGraph } from "@/lib/diagram/schema";
-import { IDENTITY_TRANSFORM, toSceneBox } from "@/lib/diagram/layout";
+import { identityTransform, toSceneBox } from "@/lib/diagram/layout";
 import { graphToElements } from "@/lib/diagram/to-elements";
 import { rasterizeDrawing } from "@/lib/diagram/rasterize";
 import { strokesToConsume } from "@/lib/diagram/consume";
@@ -53,7 +53,7 @@ export function Canvas() {
 
   const loadExample = useCallback(async () => {
     const graph = DiagramGraph.parse(demoGraph);
-    const { elements } = await graphToElements(graph, IDENTITY_TRANSFORM);
+    const { elements } = await graphToElements(graph, identityTransform());
     apiRef.current?.updateScene({ elements, captureUpdate: "IMMEDIATELY" });
     apiRef.current?.scrollToContent(elements, { fitToContent: true });
     setStatus({
@@ -75,7 +75,11 @@ export function Canvas() {
         const graph = DiagramGraph.parse(payload.graph);
         const { elements, warnings } = await graphToElements(
           graph,
-          transformForImage(width, height),
+          {
+            ...transformForImage(width, height),
+            imageWidth: width,
+            imageHeight: height,
+          },
         );
 
         const api = apiRef.current;

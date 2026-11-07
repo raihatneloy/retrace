@@ -81,7 +81,13 @@ export async function rasterizeDrawing(
     dataUrl,
     width,
     height,
-    transform: { scale, originX: bounds.minX, originY: bounds.minY },
+    transform: {
+      scale,
+      originX: bounds.minX,
+      originY: bounds.minY,
+      imageWidth: width,
+      imageHeight: height,
+    },
   };
 }
 

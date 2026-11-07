@@ -1,0 +1,59 @@
+{
+  "id": "dashed-edges",
+  "difficulty": "medium",
+  "notes": "one solid and one dashed arrow",
+  "image": "corpus/images/dashed-edges.png",
+  "width": 1000,
+  "height": 560,
+  "expected": {
+    "nodes": [
+      {
+        "id": "n1",
+        "label": "client",
+        "shape": "rect",
+        "bbox": {
+          "x": 80,
+          "y": 120,
+          "w": 200,
+          "h": 90
+        }
+      },
+      {
+        "id": "n2",
+        "label": "cache",
+        "shape": "rect",
+        "bbox": {
+          "x": 420,
+          "y": 120,
+          "w": 200,
+          "h": 90
+        }
+      },
+      {
+        "id": "n3",
+        "label": "origin",
+        "shape": "rect",
+        "bbox": {
+          "x": 760,
+          "y": 120,
+          "w": 180,
+          "h": 90
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n1",
+        "to": "n2",
+        "label": "hit",
+        "style": "solid"
+      },
+      {
+        "from": "n2",
+        "to": "n3",
+        "label": "miss",
+        "style": "dashed"
+      }
+    ]
+  }
+}

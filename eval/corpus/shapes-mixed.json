@@ -1,0 +1,76 @@
+{
+  "id": "shapes-mixed",
+  "difficulty": "medium",
+  "notes": "ellipse and diamond must not be reported as rectangles",
+  "image": "corpus/images/shapes-mixed.png",
+  "width": 1000,
+  "height": 560,
+  "expected": {
+    "nodes": [
+      {
+        "id": "n1",
+        "label": "ingest",
+        "shape": "rect",
+        "bbox": {
+          "x": 70,
+          "y": 220,
+          "w": 200,
+          "h": 90
+        }
+      },
+      {
+        "id": "n2",
+        "label": "redis",
+        "shape": "ellipse",
+        "bbox": {
+          "x": 400,
+          "y": 90,
+          "w": 150,
+          "h": 90
+        }
+      },
+      {
+        "id": "n3",
+        "label": "valid?",
+        "shape": "diamond",
+        "bbox": {
+          "x": 400,
+          "y": 330,
+          "w": 180,
+          "h": 110
+        }
+      },
+      {
+        "id": "n4",
+        "label": "reject",
+        "shape": "rect",
+        "bbox": {
+          "x": 720,
+          "y": 330,
+          "w": 200,
+          "h": 90
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n1",
+        "to": "n2",
+        "label": "publish",
+        "style": "solid"
+      },
+      {
+        "from": "n1",
+        "to": "n3",
+        "label": null,
+        "style": "solid"
+      },
+      {
+        "from": "n3",
+        "to": "n4",
+        "label": "no",
+        "style": "solid"
+      }
+    ]
+  }
+}

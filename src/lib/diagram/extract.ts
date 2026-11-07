@@ -20,9 +20,11 @@ Rules:
 
 1. One node per drawn shape. A hand-drawn box is often one wobbly stroke; a
    sloppy rectangle is still a rectangle. Report it once, not once per stroke.
-2. bbox is in pixels of the image you were given, as {x, y, w, h}, with the
-   origin at the top-left. Make it tight around the drawn shape, and preserve
-   the shape's position and rough size. Do not normalise, centre or tidy up.
+2. bbox is {x, y, w, h} given as FRACTIONS of the image, not pixels: 0 is the
+   left/top edge of the image and 1 is the right/bottom edge. A shape in the
+   top-left quarter might be {"x":0.05,"y":0.10,"w":0.20,"h":0.15}. Judge where
+   the shape sits proportionally — do not convert to pixels, and do not tidy
+   up, centre or re-space the layout.
 3. shape is "rect" for boxes, "ellipse" for circles and ovals, "diamond" for
    decision/rhombus shapes, and "text" for handwriting that is not inside any
    shape (an arrow annotation, a title, a floating note).

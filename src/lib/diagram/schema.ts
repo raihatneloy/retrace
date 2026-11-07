@@ -9,7 +9,18 @@ import { z } from "zod";
 export const NODE_SHAPES = ["rect", "ellipse", "diamond", "text"] as const;
 export type NodeShape = (typeof NODE_SHAPES)[number];
 
-/** Bounding box in *raster* pixels — the pixel space of the image the model saw. */
+/**
+ * Bounding box as FRACTIONS of the image the model saw: 0 is the left/top edge,
+ * 1 is the right/bottom edge.
+ *
+ * Not pixels, on purpose. Vision models estimate absolute pixel coordinates
+ * against a canvas size they have to guess, and the guess drifts: measured on
+ * the eval corpus, every shape below the vertical midpoint came back ~6.8% of
+ * the image height too low. Relative coordinates remove that class of error
+ * because the model only has to judge proportion, which it does far better.
+ *
+ * Legacy pixel output is still accepted — see `toSceneBox`.
+ */
 export const BBox = z.object({
   x: z.number().finite(),
   y: z.number().finite(),

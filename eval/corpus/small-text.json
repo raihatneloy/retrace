@@ -1,0 +1,59 @@
+{
+  "id": "small-text",
+  "difficulty": "hard",
+  "notes": "15px labels: tests OCR on small handwriting",
+  "image": "corpus/images/small-text.png",
+  "width": 1000,
+  "height": 480,
+  "expected": {
+    "nodes": [
+      {
+        "id": "n1",
+        "label": "svc-a",
+        "shape": "rect",
+        "bbox": {
+          "x": 90,
+          "y": 120,
+          "w": 190,
+          "h": 80
+        }
+      },
+      {
+        "id": "n2",
+        "label": "svc-b",
+        "shape": "rect",
+        "bbox": {
+          "x": 420,
+          "y": 120,
+          "w": 190,
+          "h": 80
+        }
+      },
+      {
+        "id": "n3",
+        "label": "svc-c",
+        "shape": "rect",
+        "bbox": {
+          "x": 750,
+          "y": 120,
+          "w": 190,
+          "h": 80
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n1",
+        "to": "n2",
+        "label": null,
+        "style": "solid"
+      },
+      {
+        "from": "n2",
+        "to": "n3",
+        "label": null,
+        "style": "solid"
+      }
+    ]
+  }
+}

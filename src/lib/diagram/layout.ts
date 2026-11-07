@@ -10,13 +10,18 @@ export type RasterTransform = {
   scale: number;
   originX: number;
   originY: number;
+  /** Pixel size of the raster the model saw, for de-normalising its bboxes. */
+  imageWidth: number;
+  imageHeight: number;
 };
 
-export const IDENTITY_TRANSFORM: RasterTransform = {
+export const identityTransform = (imageWidth = 1000, imageHeight = 1000): RasterTransform => ({
   scale: 1,
   originX: 0,
   originY: 0,
-};
+  imageWidth,
+  imageHeight,
+});
 
 /** Never let a model-produced box collapse to an unclickable sliver. */
 export const MIN_NODE_W = 80;
@@ -26,14 +31,31 @@ export const GRID = 10;
 
 export type SceneBox = { x: number; y: number; w: number; h: number };
 
-export function toSceneBox(bbox: BBox, t: RasterTransform): SceneBox {
-  const x = t.originX + bbox.x / t.scale;
-  const y = t.originY + bbox.y / t.scale;
+/** A model that ignored the instruction and answered in pixels. */
+export function isPixelSpace(bbox: BBox): boolean {
+  return bbox.x > 1.05 || bbox.y > 1.05 || bbox.w > 1.05 || bbox.h > 1.05;
+}
+
+/** Normalised (0..1) or legacy pixel bbox -> pixels of the raster. */
+export function toRasterPixels(bbox: BBox, t: RasterTransform): SceneBox {
+  if (isPixelSpace(bbox)) {
+    return { x: bbox.x, y: bbox.y, w: bbox.w, h: bbox.h };
+  }
   return {
-    x: snap(x),
-    y: snap(y),
-    w: Math.max(MIN_NODE_W, snap(bbox.w / t.scale)),
-    h: Math.max(MIN_NODE_H, snap(bbox.h / t.scale)),
+    x: bbox.x * t.imageWidth,
+    y: bbox.y * t.imageHeight,
+    w: bbox.w * t.imageWidth,
+    h: bbox.h * t.imageHeight,
+  };
+}
+
+export function toSceneBox(bbox: BBox, t: RasterTransform): SceneBox {
+  const px = toRasterPixels(bbox, t);
+  return {
+    x: snap(t.originX + px.x / t.scale),
+    y: snap(t.originY + px.y / t.scale),
+    w: Math.max(MIN_NODE_W, snap(px.w / t.scale)),
+    h: Math.max(MIN_NODE_H, snap(px.h / t.scale)),
   };
 }
 

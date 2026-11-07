@@ -1,0 +1,46 @@
+{
+  "id": "no-edges",
+  "difficulty": "easy",
+  "notes": "labels only, no connections drawn",
+  "image": "corpus/images/no-edges.png",
+  "width": 900,
+  "height": 420,
+  "expected": {
+    "nodes": [
+      {
+        "id": "n1",
+        "label": "frontend",
+        "shape": "rect",
+        "bbox": {
+          "x": 80,
+          "y": 100,
+          "w": 210,
+          "h": 90
+        }
+      },
+      {
+        "id": "n2",
+        "label": "api",
+        "shape": "rect",
+        "bbox": {
+          "x": 360,
+          "y": 100,
+          "w": 210,
+          "h": 90
+        }
+      },
+      {
+        "id": "n3",
+        "label": "db",
+        "shape": "rect",
+        "bbox": {
+          "x": 640,
+          "y": 100,
+          "w": 200,
+          "h": 90
+        }
+      }
+    ],
+    "edges": []
+  }
+}

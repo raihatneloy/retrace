@@ -1,0 +1,161 @@
+{
+  "id": "dense-grid",
+  "difficulty": "hard",
+  "notes": "nine nodes, eight edges, unlabelled arrows",
+  "image": "corpus/images/dense-grid.png",
+  "width": 1100,
+  "height": 680,
+  "expected": {
+    "nodes": [
+      {
+        "id": "n1",
+        "label": "edge",
+        "shape": "rect",
+        "bbox": {
+          "x": 70,
+          "y": 70,
+          "w": 190,
+          "h": 80
+        }
+      },
+      {
+        "id": "n2",
+        "label": "cdn",
+        "shape": "rect",
+        "bbox": {
+          "x": 330,
+          "y": 70,
+          "w": 190,
+          "h": 80
+        }
+      },
+      {
+        "id": "n3",
+        "label": "waf",
+        "shape": "rect",
+        "bbox": {
+          "x": 590,
+          "y": 70,
+          "w": 190,
+          "h": 80
+        }
+      },
+      {
+        "id": "n4",
+        "label": "api",
+        "shape": "rect",
+        "bbox": {
+          "x": 70,
+          "y": 280,
+          "w": 190,
+          "h": 80
+        }
+      },
+      {
+        "id": "n5",
+        "label": "auth",
+        "shape": "rect",
+        "bbox": {
+          "x": 330,
+          "y": 280,
+          "w": 190,
+          "h": 80
+        }
+      },
+      {
+        "id": "n6",
+        "label": "cache",
+        "shape": "rect",
+        "bbox": {
+          "x": 590,
+          "y": 280,
+          "w": 190,
+          "h": 80
+        }
+      },
+      {
+        "id": "n7",
+        "label": "queue",
+        "shape": "rect",
+        "bbox": {
+          "x": 70,
+          "y": 490,
+          "w": 190,
+          "h": 80
+        }
+      },
+      {
+        "id": "n8",
+        "label": "worker",
+        "shape": "rect",
+        "bbox": {
+          "x": 330,
+          "y": 490,
+          "w": 190,
+          "h": 80
+        }
+      },
+      {
+        "id": "n9",
+        "label": "db",
+        "shape": "rect",
+        "bbox": {
+          "x": 590,
+          "y": 490,
+          "w": 190,
+          "h": 80
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n1",
+        "to": "n2",
+        "label": null,
+        "style": "solid"
+      },
+      {
+        "from": "n2",
+        "to": "n3",
+        "label": null,
+        "style": "solid"
+      },
+      {
+        "from": "n4",
+        "to": "n5",
+        "label": null,
+        "style": "solid"
+      },
+      {
+        "from": "n5",
+        "to": "n6",
+        "label": null,
+        "style": "solid"
+      },
+      {
+        "from": "n7",
+        "to": "n8",
+        "label": null,
+        "style": "solid"
+      },
+      {
+        "from": "n8",
+        "to": "n9",
+        "label": null,
+        "style": "solid"
+      },
+      {
+        "from": "n2",
+        "to": "n5",
+        "label": null,
+        "style": "solid"
+      },
+      {
+        "from": "n6",
+        "to": "n9",
+        "label": null,
+        "style": "solid"
+      }
+    ]
+  }
+}
