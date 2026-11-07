@@ -33,12 +33,12 @@ export function Toolbar({
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center p-3">
       <div className="pointer-events-auto w-full max-w-2xl rounded-xl border border-black/10 bg-white/95 shadow-sm backdrop-blur">
-        <div className="flex items-center gap-2 p-2">
+        <div className="flex flex-wrap items-center gap-2 p-2">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="rounded-lg bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
+            className="shrink-0 whitespace-nowrap rounded-lg bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
           >
             {busy ? "Retracing…" : "Retrace a sketch"}
           </button>
@@ -58,7 +58,7 @@ export function Toolbar({
             onClick={onRetraceDrawing}
             disabled={busy}
             title="Convert the strokes you drew on this canvas into real shapes"
-            className="rounded-lg border border-black/20 px-2.5 py-2 text-sm disabled:opacity-40"
+            className="shrink-0 whitespace-nowrap rounded-lg border border-black/20 px-2.5 py-2 text-sm disabled:opacity-40"
           >
             Retrace drawing
           </button>
@@ -66,22 +66,24 @@ export function Toolbar({
             type="button"
             onClick={onExample}
             disabled={busy}
-            className="rounded-lg border border-black/10 px-2.5 py-2 text-sm disabled:opacity-40"
+            className="shrink-0 whitespace-nowrap rounded-lg border border-black/10 px-2.5 py-2 text-sm disabled:opacity-40"
           >
             Example
           </button>
-          <span className="truncate text-xs opacity-60">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="ml-auto shrink-0 whitespace-nowrap rounded-lg border border-black/10 px-2.5 py-1.5 text-xs"
+          >
+            {spec.label}
+          </button>
+          {/* Its own line: on a phone the buttons need the width, and a status
+              you cannot read is worse than a line of extra height. */}
+          <span className="order-last w-full truncate text-xs opacity-60">
             {status.kind === "idle"
               ? "Draw or photograph a diagram — get real, editable shapes back."
               : status.text}
           </span>
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="ml-auto shrink-0 rounded-lg border border-black/10 px-2.5 py-1.5 text-xs"
-          >
-            {spec.label}
-          </button>
         </div>
 
         {open && (
