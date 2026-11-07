@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    { "id": "n1", "label": "ingest-svc", "shape": "rect", "bbox": { "x": 70, "y": 230, "w": 215, "h": 95 } },
+    { "id": "n2", "label": "redis-ttl", "shape": "ellipse", "bbox": { "x": 458, "y": 58, "w": 124, "h": 124 } },
+    { "id": "n3", "label": "auth", "shape": "rect", "bbox": { "x": 400, "y": 300, "w": 190, "h": 90 } },
+    { "id": "n4", "label": "order-svc", "shape": "rect", "bbox": { "x": 760, "y": 80, "w": 235, "h": 90 } },
+    { "id": "n5", "label": "pg-replica", "shape": "rect", "bbox": { "x": 760, "y": 300, "w": 240, "h": 90 } }
+  ],
+  "edges": [
+    { "from": "n1", "to": "n2", "label": "publish", "style": "solid", "arrowhead": true },
+    { "from": "n4", "to": "n5", "label": "read", "style": "solid", "arrowhead": true }
+  ],
+  "notes": "Two lines were left unbound in the sketch and were not converted."
+}
