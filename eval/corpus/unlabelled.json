@@ -1,0 +1,42 @@
+{
+  "id": "unlabelled",
+  "difficulty": "easy",
+  "notes": "no text at all: shapes must still be reported",
+  "image": "corpus/images/unlabelled.png",
+  "width": 900,
+  "height": 520,
+  "expected": {
+    "nodes": [
+      {
+        "id": "n1",
+        "label": "",
+        "shape": "rect",
+        "bbox": {
+          "x": 70,
+          "y": 170,
+          "w": 220,
+          "h": 110
+        }
+      },
+      {
+        "id": "n2",
+        "label": "",
+        "shape": "ellipse",
+        "bbox": {
+          "x": 560,
+          "y": 120,
+          "w": 110,
+          "h": 140
+        }
+      }
+    ],
+    "edges": [
+      {
+        "from": "n1",
+        "to": "n2",
+        "label": null,
+        "style": "solid"
+      }
+    ]
+  }
+}

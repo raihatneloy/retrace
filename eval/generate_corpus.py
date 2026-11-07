@@ -266,6 +266,17 @@ def case_wide_labels():
     s.save("wide-labels", "medium", "long labels in narrow boxes: wrapping traps")
 
 
+def case_unlabelled():
+    """The real failure from testing: a bare box, a database cylinder and an
+    arrow, with nothing written anywhere. Every other case had labels, which is
+    how a converter bug that ate unlabelled shapes went unnoticed."""
+    s = Sketch(900, 520, 99)
+    a = s.node((70, 170, 220, 110), "")
+    b = s.node((560, 120, 110, 140), "", shape="ellipse")
+    s.edge(a, b)
+    s.save("unlabelled", "easy", "no text at all: shapes must still be reported")
+
+
 def main():
     print("writing corpus to", OUT)
     case_clean_flow()
@@ -276,6 +287,7 @@ def main():
     case_two_columns()
     case_no_edges()
     case_wide_labels()
+    case_unlabelled()
     print("done")
 
 

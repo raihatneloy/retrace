@@ -103,6 +103,27 @@ describe("graph -> excalidraw skeleton", () => {
     expect(node.height).toBe(MIN_NODE_H);
   });
 
+  it("keeps an unlabelled shape a shape, not an invisible text element", () => {
+    // Reported from real use: a box and a cylinder with nothing written in them
+    // both came back as empty text elements and vanished from the canvas.
+    const bare = graphToSkeleton(
+      DiagramGraph.parse({
+        nodes: [
+          { id: "a", label: "", shape: "rect", bbox: { x: 0, y: 0, w: 200, h: 100 } },
+          { id: "b", label: "  ", shape: "ellipse", bbox: { x: 300, y: 0, w: 120, h: 120 } },
+        ],
+        edges: [],
+      }),
+      identityTransform(),
+    );
+    const els = bare.skeleton as unknown as S[];
+    expect(els.map((e) => e.type)).toEqual(["rectangle", "ellipse"]);
+    for (const el of els) {
+      expect(el.label).toBeUndefined();
+      expect(el.text).toBeUndefined();
+    }
+  });
+
   it("converts a free-floating label into a text element, not a box", () => {
     const free = graphToSkeleton(
       DiagramGraph.parse({

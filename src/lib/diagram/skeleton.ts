@@ -56,8 +56,10 @@ function nodeSkeleton(
 ): ExcalidrawElementSkeleton {
   const label = node.label.trim();
 
-  // A free-floating label has no container to sit in.
-  if (node.shape === "text" || label === "") {
+  // A free-floating label has no container to sit in. Note "unlabelled shape"
+  // is NOT this case: a box the user drew without writing in it is still a box,
+  // and emitting it as an empty text element makes it invisible.
+  if (node.shape === "text") {
     return {
       type: "text",
       id,
@@ -85,15 +87,19 @@ function nodeSkeleton(
     backgroundColor: "transparent",
     strokeStyle: "solid",
     roughness: 1,
-    // Bound text: double-click edits it, the box resizes around it, and the
-    // label is a real text element rather than a picture of a label.
-    label: {
-      text: label,
-      fontSize: FONT_SIZE,
-      fontFamily: 1,
-      textAlign: "center",
-      verticalAlign: "middle",
-    },
+    ...(label
+      ? {
+          // Bound text: double-click edits it, the box resizes around it, and
+          // the label is a real text element, not a picture of a label.
+          label: {
+            text: label,
+            fontSize: FONT_SIZE,
+            fontFamily: 1,
+            textAlign: "center",
+            verticalAlign: "middle",
+          },
+        }
+      : {}),
   } as ExcalidrawElementSkeleton;
 }
 
