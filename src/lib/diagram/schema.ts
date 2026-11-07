@@ -6,8 +6,23 @@ import { z } from "zod";
  * door produced it.
  */
 
-export const NODE_SHAPES = ["rect", "ellipse", "diamond", "text"] as const;
+export const NODE_SHAPES = ["rect", "ellipse", "diamond", "text", "unknown"] as const;
 export type NodeShape = (typeof NODE_SHAPES)[number];
+
+/**
+ * Standard diagram symbols that are not Excalidraw primitives.
+ *
+ * Excalidraw can draw a rectangle, diamond or ellipse — there is no cylinder,
+ * cloud or server element. A drawn database is a *composition*: two ellipses
+ * and two lines, grouped. `shape` stays the bounding primitive; `symbol` says
+ * what the thing actually is, and the converter builds it.
+ *
+ * "unknown" is deliberately part of the vocabulary: when the model cannot tell
+ * what a closed shape is, we keep the user's ink rather than relabel a cylinder
+ * as a rectangle.
+ */
+export const SYMBOLS = ["cylinder"] as const;
+export type SymbolName = (typeof SYMBOLS)[number];
 
 /**
  * Bounding box as FRACTIONS of the image the model saw: 0 is the left/top edge,
@@ -32,6 +47,8 @@ export const GraphNode = z.object({
   id: z.string().min(1),
   label: z.string().default(""),
   shape: z.enum(NODE_SHAPES).default("rect"),
+  /** Set when the drawing is a standard symbol rather than a plain primitive. */
+  symbol: z.enum(SYMBOLS).optional(),
   bbox: BBox,
   /** Model's own confidence, when it volunteers one. Never trusted for control flow. */
   confidence: z.number().min(0).max(1).optional(),

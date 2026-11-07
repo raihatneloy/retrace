@@ -83,7 +83,9 @@ function nodeSkeleton(
   }
 
   return {
-    type: EXCALIDRAW_TYPE[node.shape],
+    // "unknown" never reaches here: the caller leaves unrecognised shapes as
+    // the user's ink rather than inventing a primitive for them.
+    type: EXCALIDRAW_TYPE[node.shape as keyof typeof EXCALIDRAW_TYPE],
     id,
     x: box.x,
     y: box.y,
@@ -107,6 +109,94 @@ function nodeSkeleton(
         }
       : {}),
   } as ExcalidrawElementSkeleton;
+}
+
+/**
+ * A database cylinder: top ellipse, bottom ellipse, two sides, all grouped so
+ * it drags and resizes as one object. Excalidraw has no cylinder element, so
+ * this is how the shape is actually preserved instead of being flattened.
+ */
+function cylinderSkeleton(
+  node: GraphNode,
+  box: { x: number; y: number; w: number; h: number },
+  id: string,
+): ExcalidrawElementSkeleton[] {
+  const groupId = `${id}-group`;
+  const ry = Math.max(10, Math.round(box.h * 0.16));
+  const label = node.label.trim();
+  const stroke = "#1e1e1e";
+  const common = {
+    strokeColor: stroke,
+    backgroundColor: "transparent",
+    strokeStyle: "solid",
+    roughness: 1,
+    groupIds: [groupId],
+  };
+
+  const parts = [
+    {
+      type: "ellipse" as const,
+      id,
+      x: box.x,
+      y: box.y,
+      width: box.w,
+      height: ry * 2,
+      ...common,
+    },
+    {
+      type: "ellipse" as const,
+      id: `${id}-bottom`,
+      x: box.x,
+      y: box.y + box.h - ry * 2,
+      width: box.w,
+      height: ry * 2,
+      ...common,
+    },
+    {
+      type: "line" as const,
+      id: `${id}-left`,
+      x: box.x,
+      y: box.y + ry,
+      width: 0,
+      height: box.h - ry * 2,
+      points: [
+        [0, 0],
+        [0, box.h - ry * 2],
+      ],
+      ...common,
+    },
+    {
+      type: "line" as const,
+      id: `${id}-right`,
+      x: box.x + box.w,
+      y: box.y + ry,
+      width: 0,
+      height: box.h - ry * 2,
+      points: [
+        [0, 0],
+        [0, box.h - ry * 2],
+      ],
+      ...common,
+    },
+  ] as unknown as ExcalidrawElementSkeleton[];
+
+  if (label) {
+    parts.push({
+      type: "text",
+      id: `${id}-label`,
+      x: box.x,
+      y: box.y + box.h / 2 - FONT_SIZE / 2,
+      width: box.w,
+      text: label,
+      fontSize: FONT_SIZE,
+      fontFamily: 1,
+      textAlign: "center",
+      verticalAlign: "middle",
+      strokeColor: stroke,
+    } as ExcalidrawElementSkeleton);
+  }
+
+  return parts;
 }
 
 export function graphToSkeleton(
@@ -135,12 +225,26 @@ export function graphToSkeleton(
   const skeleton: ExcalidrawElementSkeleton[] = [];
 
   clean.nodes.forEach((node, i) => {
-    const id = slugId("n", node.label || node.shape, i, ns);
+    const box = boxes.get(node.id)!;
+    const id = slugId("n", node.label || node.symbol || node.shape, i, ns);
+
+    // Nothing we could honestly call a shape: emit no element, so the strokes
+    // that drew it are left alone by the consumption pass.
+    if (node.shape === "unknown") {
+      warnings.push(`"${node.label || "a shape"}" was not recognised — left as drawn`);
+      return;
+    }
+
     idOf.set(node.id, id);
-    skeleton.push(nodeSkeleton(node, boxes.get(node.id)!, id));
+    if (node.symbol === "cylinder") {
+      skeleton.push(...cylinderSkeleton(node, box, id));
+    } else {
+      skeleton.push(nodeSkeleton(node, box, id));
+    }
   });
 
   clean.edges.forEach((edge, i) => {
+    if (!idOf.has(edge.from) || !idOf.has(edge.to)) return;
     const a = boxes.get(edge.from)!;
     const b = boxes.get(edge.to)!;
     const { start, end } = edgeAnchors(a, b);

@@ -199,6 +199,67 @@ describe("graph -> excalidraw skeleton", () => {
     expect(node.height).toBe(100);
   });
 
+  it("builds a drawn database as a grouped cylinder, not a rectangle", () => {
+    // Excalidraw has no cylinder element. Reporting one as a rectangle
+    // replaces the drawing with the wrong shape, which is worse than useless.
+    const drum = graphToSkeleton(
+      DiagramGraph.parse({
+        nodes: [
+          {
+            id: "db",
+            label: "orders",
+            shape: "rect",
+            symbol: "cylinder",
+            bbox: { x: 100, y: 100, w: 200, h: 300 },
+          },
+        ],
+        edges: [],
+      }),
+      identityTransform(),
+    );
+    const parts = drum.skeleton as unknown as S[] & Array<{ groupIds?: string[] }>;
+
+    expect(parts.filter((p) => p.type === "ellipse")).toHaveLength(2);
+    expect(parts.filter((p) => p.type === "line")).toHaveLength(2);
+
+    const groups = new Set(
+      parts
+        .filter((p) => p.type !== "text")
+        .map((p) => (p as unknown as { groupIds: string[] }).groupIds[0]),
+    );
+    expect(groups.size).toBe(1); // drags and resizes as one object
+
+    // The node's own id stays on the top ellipse so arrows can bind to it.
+    const top = parts.find((p) => p.type === "ellipse")!;
+    expect(top.id).toBe("n-orders-0");
+  });
+
+  it("leaves a shape it cannot name as the user's ink", () => {
+    const mystery = graphToSkeleton(
+      DiagramGraph.parse({
+        nodes: [{ id: "x", label: "cloud", shape: "unknown", bbox: { x: 0, y: 0, w: 100, h: 80 } }],
+        edges: [],
+      }),
+      identityTransform(),
+    );
+    expect(mystery.skeleton).toHaveLength(0);
+    expect(mystery.warnings.join(" ")).toContain("not recognised");
+  });
+
+  it("drops an arrow whose endpoint was left unrecognised", () => {
+    const partial = graphToSkeleton(
+      DiagramGraph.parse({
+        nodes: [
+          { id: "a", label: "api", shape: "rect", bbox: { x: 0, y: 0, w: 100, h: 80 } },
+          { id: "b", label: "thing", shape: "unknown", bbox: { x: 300, y: 0, w: 100, h: 80 } },
+        ],
+        edges: [{ from: "a", to: "b" }],
+      }),
+      identityTransform(),
+    );
+    expect((partial.skeleton as unknown as S[]).filter((s) => s.type === "arrow")).toHaveLength(0);
+  });
+
   it("says nothing when there was nothing to change", () => {
     expect(warnings).toEqual([]);
   });

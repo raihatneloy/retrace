@@ -29,6 +29,14 @@ Rules:
 3. shape is "rect" for boxes, "ellipse" for circles and ovals, "diamond" for
    decision/rhombus shapes, and "text" for handwriting that is not inside any
    shape (an arrow annotation, a title, a floating note).
+3b. When the drawing is a standard diagram symbol rather than a plain box, keep
+   shape as its bounding primitive and set symbol to the symbol's name:
+   - "cylinder" for a database/drum: an oval top with a body below it, like a
+     tin can seen from the side
+   If a closed shape is clearly something we have no word for (a cloud, a server
+   rack, a person), set shape to "unknown". Do NOT call a cylinder a rectangle:
+   we would replace your drawing with the wrong shape. "unknown" leaves the ink
+   untouched, which is the honest outcome.
 4. label is the handwriting, transcribed exactly as written. Do not correct
    spelling, do not expand abbreviations, do not invent a label. If a shape has
    no readable text, use an empty string.
