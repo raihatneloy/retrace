@@ -77,6 +77,7 @@ export async function POST(request: Request) {
         imageDataUrl: image?.dataUrl,
         prompt: input.prompt,
         knownLabels: input.knownLabels,
+        sceneDigest: input.digest,
       }),
     );
 

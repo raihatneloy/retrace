@@ -17,6 +17,7 @@ import { extractGraph } from "../src/lib/diagram/extract";
 import { getProvider, resolveModel } from "../src/lib/providers/registry";
 import { languageModelFor } from "../src/lib/providers/model";
 import { scoreCase, summarise, type Truth } from "../src/lib/eval/score";
+import { buildSceneDigest } from "../src/lib/diagram/digest";
 
 type Case = {
   id: string;
@@ -39,6 +40,7 @@ function arg(name: string, fallback?: string): string | undefined {
 async function main() {
   const providerId = arg("provider", process.env.EVAL_PROVIDER ?? "opencode")!;
   const only = arg("only");
+  const useDigest = process.argv.includes("--digest");
   const repeat = Number(arg("repeat", "1"));
 
   const spec = getProvider(providerId);
@@ -54,13 +56,14 @@ async function main() {
   }
 
   const files = readdirSync(API)
-    .filter((f) => f.endsWith(".json"))
+    .filter((f) => f.endsWith(".json") && !f.endsWith(".scene.json"))
     .filter((f) => (only ? f.startsWith(only) : true))
     .sort();
 
   if (!files.length) throw new Error(`no cases in ${API} (run: python3 eval/generate_corpus.py)`);
 
   console.log(`provider ${spec.id} / ${resolved.model}`);
+  console.log(`input: ${useDigest ? "image + scene digest" : "image only"}`);
   console.log(`${files.length} case(s), ${repeat} run(s)\n`);
 
   mkdirSync(OUT, { recursive: true });
@@ -72,6 +75,20 @@ async function main() {
     const imagePath = path.join(root, testCase.image);
     const dataUrl = `data:image/png;base64,${readFileSync(imagePath).toString("base64")}`;
 
+    let digest: unknown;
+    if (useDigest) {
+      const scenePath = path.join(API, file.replace(/\.json$/, ".scene.json"));
+      if (!existsSync(scenePath)) throw new Error(`missing scene for ${testCase.id} (run eval/generate_scenes.py)`);
+      const scene = JSON.parse(readFileSync(scenePath, "utf8"));
+      digest = buildSceneDigest(scene.elements, {
+        scale: 1,
+        originX: 0,
+        originY: 0,
+        imageWidth: testCase.width,
+        imageHeight: testCase.height,
+      });
+    }
+
     for (let run = 1; run <= repeat; run++) {
       const started = Date.now();
       try {
@@ -79,7 +96,7 @@ async function main() {
           ...resolved,
           sessionId: `eval-${testCase.id}-${run}`,
         });
-        const { graph, usage } = await extractGraph({ model, imageDataUrl: dataUrl });
+        const { graph, usage } = await extractGraph({ model, imageDataUrl: dataUrl, sceneDigest: digest });
         const ms = Date.now() - started;
 
         const parsed = DiagramGraph.parse(graph);
@@ -140,10 +157,10 @@ async function main() {
   console.log(`  edge precision    ${pct(summary.edgePrecision)}`);
 
   writeFileSync(
-    path.join(root, "report.json"),
+    path.join(root, useDigest ? "report-digest.json" : "report.json"),
     JSON.stringify({ provider: spec.id, model: resolved.model, summary, results, failures }, null, 2),
   );
-  console.log(`\n  wrote eval/report.json`);
+  console.log(`\n  wrote eval/${useDigest ? "report-digest.json" : "report.json"}`);
 
   if (failures.length) {
     console.log(`\n  ${failures.length} case(s) threw:`);

@@ -1,0 +1,254 @@
+{
+  "provider": "opencode",
+  "model": "deepseek-v4.1-flash",
+  "summary": {
+    "cases": 9,
+    "nodeRecall": 1,
+    "nodePrecision": 1,
+    "labelExact": 1,
+    "labelFuzzy": 1,
+    "shapeAccuracy": 1,
+    "meanIoU": 0.9700780378835163,
+    "meanCentreErrorPx": 0.6531780145960876,
+    "edgeRecall": 0.9583333333333334,
+    "edgePrecision": 0.9583333333333334
+  },
+  "results": [
+    {
+      "id": "clean-flow",
+      "difficulty": "easy",
+      "nodes": {
+        "expected": 4,
+        "predicted": 4,
+        "matched": 4
+      },
+      "edges": {
+        "expected": 3,
+        "predicted": 3,
+        "matched": 3
+      },
+      "labelExact": 4,
+      "labelFuzzy": 4,
+      "shapeCorrect": 4,
+      "meanIoU": 0.9655373239319809,
+      "meanCentreErrorPx": 0.44114561204839525,
+      "hallucinatedLabels": [],
+      "missingLabels": [],
+      "wrongLabels": [],
+      "nearMisses": [],
+      "unmatchedEdges": [],
+      "inventedEdges": []
+    },
+    {
+      "id": "dashed-edges",
+      "difficulty": "medium",
+      "nodes": {
+        "expected": 3,
+        "predicted": 3,
+        "matched": 3
+      },
+      "edges": {
+        "expected": 2,
+        "predicted": 2,
+        "matched": 2
+      },
+      "labelExact": 3,
+      "labelFuzzy": 3,
+      "shapeCorrect": 3,
+      "meanIoU": 0.9676238282291632,
+      "meanCentreErrorPx": 0.4995054935711419,
+      "hallucinatedLabels": [],
+      "missingLabels": [],
+      "wrongLabels": [],
+      "nearMisses": [],
+      "unmatchedEdges": [],
+      "inventedEdges": []
+    },
+    {
+      "id": "dense-grid",
+      "difficulty": "hard",
+      "nodes": {
+        "expected": 9,
+        "predicted": 9,
+        "matched": 9
+      },
+      "edges": {
+        "expected": 8,
+        "predicted": 8,
+        "matched": 7
+      },
+      "labelExact": 9,
+      "labelFuzzy": 9,
+      "shapeCorrect": 9,
+      "meanIoU": 0.9741468740593322,
+      "meanCentreErrorPx": 0.9384063111378708,
+      "hallucinatedLabels": [],
+      "missingLabels": [],
+      "wrongLabels": [],
+      "nearMisses": [],
+      "unmatchedEdges": [
+        {
+          "from": "n2",
+          "to": "n5"
+        }
+      ],
+      "inventedEdges": [
+        {
+          "from": "n2",
+          "to": "n6"
+        }
+      ]
+    },
+    {
+      "id": "no-edges",
+      "difficulty": "easy",
+      "nodes": {
+        "expected": 3,
+        "predicted": 3,
+        "matched": 3
+      },
+      "edges": {
+        "expected": 0,
+        "predicted": 0,
+        "matched": 0
+      },
+      "labelExact": 3,
+      "labelFuzzy": 3,
+      "shapeCorrect": 3,
+      "meanIoU": 0.964039919071813,
+      "meanCentreErrorPx": 0.432108806803369,
+      "hallucinatedLabels": [],
+      "missingLabels": [],
+      "wrongLabels": [],
+      "nearMisses": [],
+      "unmatchedEdges": [],
+      "inventedEdges": []
+    },
+    {
+      "id": "shapes-mixed",
+      "difficulty": "medium",
+      "nodes": {
+        "expected": 4,
+        "predicted": 4,
+        "matched": 4
+      },
+      "edges": {
+        "expected": 3,
+        "predicted": 3,
+        "matched": 3
+      },
+      "labelExact": 4,
+      "labelFuzzy": 4,
+      "shapeCorrect": 4,
+      "meanIoU": 0.9795172193000582,
+      "meanCentreErrorPx": 0.9999999999999929,
+      "hallucinatedLabels": [],
+      "missingLabels": [],
+      "wrongLabels": [],
+      "nearMisses": [],
+      "unmatchedEdges": [],
+      "inventedEdges": []
+    },
+    {
+      "id": "small-text",
+      "difficulty": "hard",
+      "nodes": {
+        "expected": 3,
+        "predicted": 3,
+        "matched": 3
+      },
+      "edges": {
+        "expected": 2,
+        "predicted": 2,
+        "matched": 2
+      },
+      "labelExact": 3,
+      "labelFuzzy": 3,
+      "shapeCorrect": 3,
+      "meanIoU": 0.9776236241197981,
+      "meanCentreErrorPx": 0.4801041412477666,
+      "hallucinatedLabels": [],
+      "missingLabels": [],
+      "wrongLabels": [],
+      "nearMisses": [],
+      "unmatchedEdges": [],
+      "inventedEdges": []
+    },
+    {
+      "id": "two-columns",
+      "difficulty": "medium",
+      "nodes": {
+        "expected": 6,
+        "predicted": 6,
+        "matched": 6
+      },
+      "edges": {
+        "expected": 4,
+        "predicted": 4,
+        "matched": 4
+      },
+      "labelExact": 6,
+      "labelFuzzy": 6,
+      "shapeCorrect": 6,
+      "meanIoU": 0.9597188385111243,
+      "meanCentreErrorPx": 0.5571787968903801,
+      "hallucinatedLabels": [],
+      "missingLabels": [],
+      "wrongLabels": [],
+      "nearMisses": [],
+      "unmatchedEdges": [],
+      "inventedEdges": []
+    },
+    {
+      "id": "unlabelled",
+      "difficulty": "easy",
+      "nodes": {
+        "expected": 2,
+        "predicted": 2,
+        "matched": 2
+      },
+      "edges": {
+        "expected": 1,
+        "predicted": 1,
+        "matched": 1
+      },
+      "labelExact": 2,
+      "labelFuzzy": 2,
+      "shapeCorrect": 2,
+      "meanIoU": 0.9811858983887033,
+      "meanCentreErrorPx": 0.3629705854078252,
+      "hallucinatedLabels": [],
+      "missingLabels": [],
+      "wrongLabels": [],
+      "nearMisses": [],
+      "unmatchedEdges": [],
+      "inventedEdges": []
+    },
+    {
+      "id": "wide-labels",
+      "difficulty": "medium",
+      "nodes": {
+        "expected": 2,
+        "predicted": 2,
+        "matched": 2
+      },
+      "edges": {
+        "expected": 1,
+        "predicted": 1,
+        "matched": 1
+      },
+      "labelExact": 2,
+      "labelFuzzy": 2,
+      "shapeCorrect": 2,
+      "meanIoU": 0.9633611911189812,
+      "meanCentreErrorPx": 0.5,
+      "hallucinatedLabels": [],
+      "missingLabels": [],
+      "wrongLabels": [],
+      "nearMisses": [],
+      "unmatchedEdges": [],
+      "inventedEdges": []
+    }
+  ],
+  "failures": []
+}

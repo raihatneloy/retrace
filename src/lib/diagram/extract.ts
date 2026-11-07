@@ -10,7 +10,8 @@ import { DiagramGraph } from "./schema";
  * never emits element JSON — that is the converter's job, and keeping the two
  * apart is why "Make it real" can be repeatable.
  */
-export const EXTRACTION_SYSTEM = `You read hand-drawn diagrams and report their structure.
+export const EXTRACTION_SYSTEM = `You read hand-drawn diagrams and report their structure as JSON matching the
+given schema.
 
 You are given an image of a hand-drawn sketch: boxes, circles, diamonds, arrows
 and handwriting. Transcribe it into a graph. You are NOT redrawing it and NOT
@@ -49,6 +50,16 @@ Rules:
 12. notes is one short sentence about anything you could not read or were unsure
     about. Leave it null when everything was clear.
 
+If a <document> block accompanies the image, it is the same sketch described
+twice:
+
+- the document is authoritative for geometry (exact stroke bounds) and for any
+  typed text
+- the image is authoritative for what an object IS (a box, a database symbol),
+  for which strokes belong together, and for handwriting
+- when they disagree, place shapes where the document says and describe them as
+  the image shows, and mention the disagreement in notes
+
 Prefer missing a faint arrow over inventing a confident one. Never omit a shape
 you can see.`;
 
@@ -58,6 +69,11 @@ export type ExtractInput = {
   prompt?: string;
   /** Optional scene text we already know exactly, so the model need not OCR it. */
   knownLabels?: string[];
+  /**
+   * Compact projection of the source document, if the sketch came from one.
+   * Exact ink geometry and typed text; the image supplies meaning.
+   */
+  sceneDigest?: unknown;
 };
 
 export type ExtractResult = {
@@ -70,6 +86,7 @@ export async function extractGraph({
   imageDataUrl,
   prompt,
   knownLabels,
+  sceneDigest,
 }: ExtractInput): Promise<ExtractResult> {
   const instructions = [
     imageDataUrl
@@ -78,6 +95,9 @@ export async function extractGraph({
     prompt?.trim() ? `Additional instruction from the author: ${prompt.trim()}` : "",
     knownLabels?.length
       ? `These labels already exist as typed text in the editor, so prefer them when you see something similar: ${knownLabels.join(", ")}.`
+      : "",
+    sceneDigest
+      ? `The sketch came from a document. Its geometry is below, in pixels of the attached image. Use it for WHERE things are and for any typed text; use the image for WHAT a thing is and for handwriting.\n\n<document>\n${JSON.stringify(sceneDigest)}\n</document>`
       : "",
   ]
     .filter(Boolean)

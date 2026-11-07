@@ -32,6 +32,18 @@ export const DiagramRequest = z
      */
     session: z.string().min(1).max(120).optional(),
     knownLabels: z.array(z.string().max(120)).max(200).optional(),
+    /**
+     * Compact projection of the source document (exact ink bounds, typed text,
+     * bindings). Optional: photos have no document behind them.
+     */
+    digest: z
+      .object({
+        imageWidth: z.number().positive(),
+        imageHeight: z.number().positive(),
+        elements: z.array(z.record(z.string(), z.unknown())).max(500),
+      })
+      .passthrough()
+      .optional(),
   })
   .refine((v) => Boolean(v.image?.dataUrl) || Boolean(v.prompt?.trim()), {
     message: "send an image, a prompt, or both",
