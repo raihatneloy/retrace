@@ -12,9 +12,10 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 import demoGraph from "../../fixtures/graph-sketch2.json";
 import { DiagramGraph } from "@/lib/diagram/schema";
-import { IDENTITY_TRANSFORM } from "@/lib/diagram/layout";
+import { IDENTITY_TRANSFORM, toSceneBox } from "@/lib/diagram/layout";
 import { graphToElements } from "@/lib/diagram/to-elements";
 import { rasterizeDrawing } from "@/lib/diagram/rasterize";
+import { strokesToConsume } from "@/lib/diagram/consume";
 import {
   getServerSettings,
   getSettings,
@@ -133,20 +134,43 @@ export function Canvas() {
       const graph = DiagramGraph.parse(payload.graph);
       const { elements, warnings } = await graphToElements(graph, raster.transform);
 
-      // Replace only the strokes we consumed; everything else stays put.
-      const consumed = new Set(targets.map((el) => el.id));
-      const kept = all.filter((el) => !consumed.has(el.id));
-      const next = [...kept, ...elements];
+      // Only strokes the answer actually accounts for may be removed. An
+      // under-detected sketch must never silently lose the parts it missed.
+      const nodeBoxes = new Map(graph.nodes.map((n) => [n.id, toSceneBox(n.bbox, raster.transform)]));
+      const edgeBoxes = graph.edges.flatMap((e) => {
+        const from = nodeBoxes.get(e.from);
+        const to = nodeBoxes.get(e.to);
+        return from && to ? [{ from, to }] : [];
+      });
+      const decision = strokesToConsume(
+        targets.map((el) => ({
+          id: el.id,
+          box: { x: el.x, y: el.y, w: el.width, h: el.height },
+        })),
+        [...nodeBoxes.values()],
+        edgeBoxes,
+      );
+
+      const consumed = new Set(decision.consume);
+      const survivorStrokes = all.filter((el) => !consumed.has(el.id));
+      const next = [...survivorStrokes, ...elements];
       api.updateScene({ elements: next, captureUpdate: "IMMEDIATELY" });
       api.scrollToContent(next, { fitToContent: true });
 
+      const shapes = graph.nodes.length;
+      const base = `Retraced ${decision.consume.length} stroke${
+        decision.consume.length === 1 ? "" : "s"
+      } into ${shapes} shape${shapes === 1 ? "" : "s"}`;
+      // Say it out loud when the model read less than was drawn.
+      const keptNote = decision.keep.length
+        ? ` · kept ${decision.keep.length} stroke${
+            decision.keep.length === 1 ? "" : "s"
+          } it did not recognise`
+        : "";
+
       setStatus({
-        kind: "ok",
-        text: `Retraced ${targets.length} stroke${targets.length === 1 ? "" : "s"} into ${
-          graph.nodes.length
-        } shape${graph.nodes.length === 1 ? "" : "s"}${
-          warnings.length ? ` · ${warnings[0]}` : ""
-        }`,
+        kind: decision.keep.length ? "error" : "ok",
+        text: `${base}${keptNote}${warnings.length ? ` · ${warnings[0]}` : ""}`,
       });
     } catch (err) {
       setStatus({ kind: "error", text: (err as Error).message });

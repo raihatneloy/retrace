@@ -38,10 +38,17 @@ Rules:
 7. style is "dashed" only if the line was drawn dashed or dotted.
 8. Ignore page borders, stray marks, frames and underlines.
 9. ids are n1, n2, n3 … in reading order.
-10. notes is one short sentence about anything you could not read or were unsure
+10. Never drop something that was drawn. An icon or symbol you cannot name is
+    still a node: report it with an empty label and describe it in notes. Saying
+    nothing about a drawn object makes it disappear from the result, which is
+    worse than an imperfect guess you can see and correct.
+11. A symbol drawn inside a box (a database cylinder inside a service) is its own
+    node. A box whose only contents are words is one node, not two.
+12. notes is one short sentence about anything you could not read or were unsure
     about. Leave it null when everything was clear.
 
-Prefer missing a faint arrow over inventing a confident one.`;
+Prefer missing a faint arrow over inventing a confident one. Never omit a shape
+you can see.`;
 
 export type ExtractInput = {
   model: LanguageModel;
