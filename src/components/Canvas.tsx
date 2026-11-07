@@ -81,6 +81,7 @@ export function Canvas() {
             imageWidth: width,
             imageHeight: height,
           },
+          { idNamespace: newNamespace() },
         );
 
         const api = apiRef.current;
@@ -141,7 +142,12 @@ export function Canvas() {
       });
 
       const graph = DiagramGraph.parse(payload.graph);
-      const { elements, warnings } = await graphToElements(graph, raster.transform);
+      // Every conversion gets its own id namespace. Deterministic ids across
+      // conversions collide, and a collision silently unbinds the arrows of the
+      // diagram that was already on the canvas.
+      const { elements, warnings } = await graphToElements(graph, raster.transform, {
+        idNamespace: newNamespace(),
+      });
 
       // Only strokes the answer actually accounts for may be removed. An
       // under-detected sketch must never silently lose the parts it missed.
@@ -281,4 +287,9 @@ async function requestGraph(
   const payload = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(payload.error ?? `request failed (${res.status})`);
   return payload as GraphPayload;
+}
+
+/** Short, collision-resistant prefix so successive conversions never share ids. */
+function newNamespace(): string {
+  return Math.random().toString(36).slice(2, 8);
 }

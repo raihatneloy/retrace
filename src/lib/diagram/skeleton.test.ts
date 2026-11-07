@@ -73,6 +73,29 @@ describe("graph -> excalidraw skeleton", () => {
     expect(arrow.points![1][1]).toBeGreaterThan(100);
   });
 
+  it("gives successive conversions disjoint ids", () => {
+    // Two conversions on one canvas used to share ids, and the collision
+    // silently unbound the arrows of the diagram already there.
+    const first = graphToSkeleton(graph, identityTransform(), { idNamespace: "aaa111" });
+    const second = graphToSkeleton(graph, identityTransform(), { idNamespace: "bbb222" });
+    const idsFirst = (first.skeleton as unknown as S[]).map((s) => s.id);
+    const idsSecond = (second.skeleton as unknown as S[]).map((s) => s.id);
+
+    expect(idsFirst.every((id) => id.startsWith("aaa111-"))).toBe(true);
+    expect(idsSecond.every((id) => id.startsWith("bbb222-"))).toBe(true);
+    expect(idsFirst.filter((id) => idsSecond.includes(id))).toEqual([]);
+  });
+
+  it("keeps arrow bindings pointing at its own namespaced nodes", () => {
+    const spaced = graphToSkeleton(graph, identityTransform(), { idNamespace: "zzz" });
+    const sk = spaced.skeleton as unknown as S[];
+    const ids = new Set(sk.map((s) => s.id));
+    for (const el of sk.filter((s) => s.type === "arrow")) {
+      expect(ids.has(el.start!.id)).toBe(true);
+      expect(ids.has(el.end!.id)).toBe(true);
+    }
+  });
+
   it("is deterministic: same graph in, identical scene out", () => {
     const again = graphToSkeleton(graph, identityTransform());
     expect(JSON.stringify(again.skeleton)).toBe(JSON.stringify(skeleton));

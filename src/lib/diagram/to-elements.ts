@@ -24,8 +24,9 @@ export type ConversionResult = {
 export async function graphToElements(
   graph: DiagramGraph,
   transform: RasterTransform,
+  opts: { idNamespace?: string } = {},
 ): Promise<ConversionResult> {
-  const { skeleton, warnings } = graphToSkeleton(graph, transform);
+  const { skeleton, warnings } = graphToSkeleton(graph, transform, opts);
   const { convertToExcalidrawElements } = await import("@excalidraw/excalidraw");
   // regenerateIds: false keeps our slug ids, so the same graph always yields
   // the same scene and undo history stays predictable.

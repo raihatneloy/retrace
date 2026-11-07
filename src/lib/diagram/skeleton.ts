@@ -40,13 +40,19 @@ export function fitWidthToLabel(
   return Math.min(maxWidth, Math.max(width, needed));
 }
 
-export function slugId(prefix: string, label: string, index: number): string {
+export function slugId(
+  prefix: string,
+  label: string,
+  index: number,
+  namespace = "",
+): string {
   const slug = label
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 24);
-  return `${prefix}-${slug || "node"}-${index}`;
+  const base = `${prefix}-${slug || "node"}-${index}`;
+  return namespace ? `${namespace}-${base}` : base;
 }
 
 function nodeSkeleton(
@@ -106,7 +112,9 @@ function nodeSkeleton(
 export function graphToSkeleton(
   graph: DiagramGraph,
   transform: RasterTransform,
+  opts: { idNamespace?: string } = {},
 ): { skeleton: ExcalidrawElementSkeleton[]; warnings: string[] } {
+  const ns = opts.idNamespace ?? "";
   const { graph: clean, droppedEdges, duplicateNodeIds } = pruneGraph(graph);
   const { boxes, overlaps } = layout(clean, transform);
 
@@ -127,7 +135,7 @@ export function graphToSkeleton(
   const skeleton: ExcalidrawElementSkeleton[] = [];
 
   clean.nodes.forEach((node, i) => {
-    const id = slugId("n", node.label || node.shape, i);
+    const id = slugId("n", node.label || node.shape, i, ns);
     idOf.set(node.id, id);
     skeleton.push(nodeSkeleton(node, boxes.get(node.id)!, id));
   });
@@ -136,7 +144,7 @@ export function graphToSkeleton(
     const a = boxes.get(edge.from)!;
     const b = boxes.get(edge.to)!;
     const { start, end } = edgeAnchors(a, b);
-    const arrowId = slugId("e", `${edge.from}-${edge.to}`, i);
+    const arrowId = slugId("e", `${edge.from}-${edge.to}`, i, ns);
 
     skeleton.push({
       type: "arrow",
