@@ -12,6 +12,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.98",
+    "@ai-sdk/google": "^4.0.113",
+    "@ai-sdk/openai": "^4.0.110",
+    "@ai-sdk/openai-compatible": "^3.0.86",
     "@excalidraw/excalidraw": "^0.18.1",
     "ai": "^7.0.164",
     "next": "16.4.5",

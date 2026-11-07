@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import "@excalidraw/excalidraw/index.css";
 
@@ -13,53 +13,119 @@ import demoGraph from "../../fixtures/graph-sketch2.json";
 import { DiagramGraph } from "@/lib/diagram/schema";
 import { IDENTITY_TRANSFORM } from "@/lib/diagram/layout";
 import { graphToElements } from "@/lib/diagram/to-elements";
+import {
+  loadSettings,
+  saveSettings,
+  transformForImage,
+  type Settings,
+} from "@/lib/settings";
+import { Toolbar } from "./Toolbar";
 
 const Excalidraw = dynamic(
   () => import("@excalidraw/excalidraw").then((m) => m.Excalidraw),
   { ssr: false },
 );
 
-/**
- * Builds a scene from a DiagramGraph. In production these graphs come from the
- * model (image, freedraw, or chat); today, from a checked-in fixture so the
- * conversion path can be inspected in a real editor.
- */
-function sceneFromGraph(raw: unknown): Promise<ExcalidrawInitialDataState> {
-  const graph = DiagramGraph.parse(raw);
-  return graphToElements(graph, IDENTITY_TRANSFORM).then(({ elements, warnings }) => {
-    if (warnings.length) console.warn("[retrace]", warnings);
-    return {
-      elements,
-      appState: { viewBackgroundColor: "#ffffff", gridSize: 20 },
-    };
-  });
-}
+type Status = { kind: "idle" | "ok" | "error"; text: string };
+
+const EMPTY_SCENE: ExcalidrawInitialDataState = {
+  elements: [],
+  appState: { viewBackgroundColor: "#ffffff", gridSize: 20 },
+};
 
 export function Canvas() {
-  const [data, setData] = useState<ExcalidrawInitialDataState | null>(null);
+  const [settings, setSettings] = useState<Settings>(() => loadSettings());
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<Status>({ kind: "idle", text: "" });
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
-  useEffect(() => {
-    let alive = true;
-    sceneFromGraph(demoGraph).then((scene) => {
-      if (alive) setData(scene);
-    });
-    return () => {
-      alive = false;
-    };
+  const update = useCallback((next: Settings) => {
+    setSettings(next);
+    saveSettings(next);
   }, []);
 
-  if (!data) {
-    return <div className="grid h-dvh place-items-center text-sm opacity-60">loading canvas…</div>;
-  }
+  const loadExample = useCallback(async () => {
+    const graph = DiagramGraph.parse(demoGraph);
+    const { elements } = await graphToElements(graph, IDENTITY_TRANSFORM);
+    apiRef.current?.updateScene({ elements, captureUpdate: "IMMEDIATELY" });
+    apiRef.current?.scrollToContent(elements, { fitToContent: true });
+    setStatus({
+      kind: "ok",
+      text: `Example graph: ${graph.nodes.length} shapes, ${graph.edges.length} connections`,
+    });
+  }, []);
+
+  const convert = useCallback(
+    async (file: File) => {
+      setBusy(true);
+      setStatus({ kind: "idle", text: `Reading ${file.name}…` });
+      try {
+        const { dataUrl, width, height } = await readImage(file);
+
+        setStatus({ kind: "idle", text: "Reading the sketch…" });
+        const res = await fetch("/api/diagram", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            provider: settings.provider,
+            model: settings.model || undefined,
+            apiKey: settings.keys[settings.provider] || undefined,
+            baseUrl: settings.baseUrl || undefined,
+            image: { dataUrl, width, height },
+          }),
+        });
+
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.error ?? `request failed (${res.status})`);
+
+        const graph = DiagramGraph.parse(payload.graph);
+        const { elements, warnings } = await graphToElements(
+          graph,
+          transformForImage(width, height),
+        );
+
+        const api = apiRef.current;
+        if (!api) throw new Error("canvas is not ready yet");
+
+        const existing = api.getSceneElements();
+        const next = [...existing, ...elements];
+        api.updateScene({
+          elements: next,
+          // One undo step: Cmd+Z removes the whole conversion, not forty elements.
+          captureUpdate: "IMMEDIATELY",
+        });
+        api.scrollToContent(next, { fitToContent: true });
+
+        setStatus({
+          kind: "ok",
+          text: `${graph.nodes.length} shapes, ${graph.edges.length} connections${
+            warnings.length ? ` · ${warnings[0]}` : ""
+          }`,
+        });
+      } catch (err) {
+        setStatus({ kind: "error", text: (err as Error).message });
+      } finally {
+        setBusy(false);
+      }
+    },
+    [settings],
+  );
 
   return (
     <div className="relative h-dvh w-full">
+      <Toolbar
+        settings={settings}
+        onChange={update}
+        onConvert={convert}
+        onExample={loadExample}
+        busy={busy}
+        status={status}
+      />
       <Excalidraw
-        initialData={data}
+        initialData={EMPTY_SCENE}
         excalidrawAPI={(api: ExcalidrawImperativeAPI) => {
           apiRef.current = api;
-          // Exposed for e2e checks and for the future test harness.
+          // Exposed for the e2e harness in tests and demos.
           if (typeof window !== "undefined") {
             (window as unknown as { __retrace?: unknown }).__retrace = api;
           }
@@ -67,4 +133,43 @@ export function Canvas() {
       />
     </div>
   );
+}
+
+/**
+ * Reads a picked file into a data URL and measures it. Downscales oversized
+ * photos before upload: a phone photo is twelve megapixels of nothing useful,
+ * and every unnecessary pixel is latency and money.
+ */
+async function readImage(
+  file: File,
+): Promise<{ dataUrl: string; width: number; height: number }> {
+  const original = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("could not read that file"));
+    reader.readAsDataURL(file);
+  });
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("that file is not a readable image"));
+    el.src = original;
+  });
+
+  const MAX_EDGE = 1400;
+  const scale = Math.min(1, MAX_EDGE / Math.max(img.width, img.height));
+  if (scale === 1) return { dataUrl: original, width: img.width, height: img.height };
+
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return { dataUrl: original, width: img.width, height: img.height };
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return {
+    dataUrl: canvas.toDataURL("image/png"),
+    width: canvas.width,
+    height: canvas.height,
+  };
 }

@@ -11,22 +11,43 @@ drew. Native elements, in the positions you drew them.
 
 ## Status
 
-Early. The conversion core works and is tested; the AI that produces the graph is next.
+Working end to end for a **sketch image**: upload a photo or drawing, and real
+editable elements appear on the canvas. Freedraw-on-canvas and chat come next.
 
 **Working today**
 
+- Upload a sketch → `DiagramGraph` → native Excalidraw elements, in one undo step
+- BYOK across OpenAI, Anthropic, Google Gemini, OpenRouter, OpenCode Zen, and any
+  OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, LiteLLM)
 - `DiagramGraph` — one intermediate representation, shared by every input door
-- Graph → Excalidraw elements, with bound arrows and bound (editable) text labels
+- Bound arrows and bound (editable) text labels: drag a box, the arrow follows;
+  double-click a label, edit it
 - Spatial fidelity: elements land where they were drawn, snapped to a 10-unit grid.
   We never re-layout your diagram — the arrangement is your decision, not ours
-- 12 tests over the conversion logic (pure, no DOM required)
+- 36 tests: conversion logic is pure and DOM-free; route behaviour is tested with
+  the provider stubbed
 
 **Not built yet**
 
-- Model calls: sketch → graph, photo → graph, chat → graph
-- "Make it real" on a freedraw selection inside the editor
-- BYOK provider settings UI
+- Draw on the canvas and press "Retrace" on your own freedraw strokes
+- Chat: describe a diagram, get one
 - Scene persistence and share links
+
+## Setup
+
+```bash
+npm install
+npm run dev
+```
+
+Open the app, click the provider name in the toolbar, pick a provider and paste a
+key. The key is stored in **your browser's localStorage** and forwarded per request
+to this app's own `/api/diagram` route, which does not persist it.
+
+Or give the server a key (`cp .env.example .env.local`). Request keys win over
+env keys. A public deployment should set `RETRACE_ALLOW_ENV_KEY=false` so
+strangers cannot spend your key.
+
 
 ## How it works
 

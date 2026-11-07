@@ -136,7 +136,23 @@ describe("graph -> excalidraw skeleton", () => {
     const scaledSk = scaled.skeleton as unknown as S[];
     const ingest = scaledSk.find((s) => s.id === "n-ingest-svc-0")!;
     expect(ingest.x).toBe(1040); // 70px at scale 2 => 1035, snapped to the grid (half rounds up)
-    expect(ingest.width).toBe(110); // 215px at scale 2
+    expect(ingest.height).toBe(50); // 95px at scale 2, snapped
+    expect(ingest.width).toBeGreaterThanOrEqual(110); // 215px at scale 2, possibly widened for the label
+  });
+
+  it("widens a box so its own label fits instead of wrapping it", () => {
+    const narrow = graphToSkeleton(
+      DiagramGraph.parse({
+        nodes: [
+          { id: "a", label: "pg-replica", shape: "ellipse", bbox: { x: 0, y: 0, w: 100, h: 100 } },
+        ],
+        edges: [],
+      }),
+      IDENTITY_TRANSFORM,
+    );
+    const node = (narrow.skeleton as unknown as S[])[0];
+    expect(node.width).toBeGreaterThan(100);
+    expect(node.height).toBe(100);
   });
 
   it("says nothing when there was nothing to change", () => {

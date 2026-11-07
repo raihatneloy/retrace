@@ -22,6 +22,24 @@ export const EXCALIDRAW_TYPE = {
   diamond: "diamond",
 } as const;
 
+/**
+ * A bound label wraps to its container, so a narrow box turns "redis-ttl" into
+ * two lines. Widen the box to fit its own label — what a person would do —
+ * rather than shrink the text until it is unreadable. Fidelity is about where
+ * the shape sits, not about keeping it 3px too narrow.
+ */
+export function fitWidthToLabel(
+  width: number,
+  label: string,
+  fontSize = FONT_SIZE,
+  maxWidth = 420,
+): number {
+  if (!label.trim()) return width;
+  const longest = Math.max(...label.split(/\s+/).map((w) => w.length));
+  const needed = Math.ceil(longest * fontSize * 0.62 + fontSize * 1.4);
+  return Math.min(maxWidth, Math.max(width, needed));
+}
+
 export function slugId(prefix: string, label: string, index: number): string {
   const slug = label
     .toLowerCase()
@@ -61,7 +79,7 @@ function nodeSkeleton(
     id,
     x: box.x,
     y: box.y,
-    width: box.w,
+    width: fitWidthToLabel(box.w, label),
     height: box.h,
     strokeColor: "#1e1e1e",
     backgroundColor: "transparent",
