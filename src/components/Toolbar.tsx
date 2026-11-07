@@ -31,8 +31,8 @@ export function Toolbar({
   const set = (patch: Partial<Settings>) => onChange({ ...settings, ...patch });
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center p-3">
-      <div className="pointer-events-auto w-full max-w-2xl rounded-xl border border-black/10 bg-white/95 shadow-sm backdrop-blur">
+    <div className="pointer-events-none relative z-10 flex w-full justify-center px-2 py-2">
+      <div className="pointer-events-auto w-full max-w-3xl rounded-xl border border-black/10 bg-white/95 shadow-sm backdrop-blur">
         <div className="flex flex-wrap items-center gap-2 p-2">
           <button
             type="button"
@@ -77,12 +77,13 @@ export function Toolbar({
           >
             {spec.label}
           </button>
-          {/* Its own line: on a phone the buttons need the width, and a status
-              you cannot read is worse than a line of extra height. */}
+          {/* Its own line: on a phone the buttons need the width. The idle hint
+              is desktop-only — on a phone it costs height for nothing. */}
           <span className="order-last w-full truncate text-xs opacity-60">
-            {status.kind === "idle"
-              ? "Draw or photograph a diagram — get real, editable shapes back."
-              : status.text}
+            <span className={status.kind === "idle" ? "hidden sm:inline" : "hidden"}>
+              Draw or photograph a diagram — get real, editable shapes back.
+            </span>
+            <span className={status.kind === "idle" ? "sm:hidden" : ""}>{status.text}</span>
           </span>
         </div>
 

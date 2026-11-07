@@ -156,7 +156,9 @@ export function Canvas() {
   }, [settings]);
 
   return (
-    <div className="relative h-dvh w-full">
+    <div className="flex h-dvh w-full flex-col">
+      {/* Our bar is a real row above the canvas, not an overlay: on a phone the
+          overlay landed exactly on top of Excalidraw's own menu island. */}
       <Toolbar
         settings={settings}
         onChange={update}
@@ -166,16 +168,18 @@ export function Canvas() {
         busy={busy}
         status={status}
       />
-      <Excalidraw
-        initialData={EMPTY_SCENE}
-        excalidrawAPI={(api: ExcalidrawImperativeAPI) => {
-          apiRef.current = api;
-          // Exposed for the e2e harness in tests and demos.
-          if (typeof window !== "undefined") {
-            (window as unknown as { __retrace?: unknown }).__retrace = api;
-          }
-        }}
-      />
+      <div className="relative min-h-0 flex-1">
+        <Excalidraw
+          initialData={EMPTY_SCENE}
+          excalidrawAPI={(api: ExcalidrawImperativeAPI) => {
+            apiRef.current = api;
+            // Exposed for the e2e harness in tests and demos.
+            if (typeof window !== "undefined") {
+              (window as unknown as { __retrace?: unknown }).__retrace = api;
+            }
+          }}
+        />
+      </div>
     </div>
   );
 }
