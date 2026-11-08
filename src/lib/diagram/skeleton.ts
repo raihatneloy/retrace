@@ -199,6 +199,102 @@ function cylinderSkeleton(
   return parts;
 }
 
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
+/**
+ * Builds a node out of parts described in box fractions. This is how a shape
+ * with no Excalidraw primitive — a database drum, a table with dividers, a
+ * cloud — keeps its form instead of being relabelled as a rectangle.
+ */
+function partsSkeleton(
+  node: GraphNode,
+  box: { x: number; y: number; w: number; h: number },
+  id: string,
+): ExcalidrawElementSkeleton[] {
+  const groupId = `${id}-group`;
+  const stroke = "#1e1e1e";
+  const out: ExcalidrawElementSkeleton[] = [];
+  let firstShapeId: string | null = null;
+
+  node.parts!.forEach((part, i) => {
+    const [fx, fy, fw, fh] = part.at.map(clamp01) as [number, number, number, number];
+    const x = box.x + fx * box.w;
+    const y = box.y + fy * box.h;
+    const w = Math.max(0, fw * box.w);
+    const h = Math.max(0, fh * box.h);
+
+    if (part.type === "text") {
+      if (!part.text?.trim()) return;
+      out.push({
+        type: "text",
+        id: `${id}-p${i}`,
+        x,
+        y,
+        width: Math.max(w, 20),
+        height: Math.max(h, FONT_SIZE),
+        text: part.text,
+        fontSize: FONT_SIZE,
+        fontFamily: 1,
+        textAlign: "center",
+        verticalAlign: "middle",
+        strokeColor: stroke,
+      } as ExcalidrawElementSkeleton);
+      return;
+    }
+
+    // The node's own id goes on the first shape, so arrows bind to something.
+    const elementId = firstShapeId ? `${id}-p${i}` : id;
+    if (!firstShapeId) firstShapeId = elementId;
+
+    if (part.type === "line") {
+      out.push({
+        type: "line",
+        id: elementId,
+        x,
+        y,
+        width: w,
+        height: h,
+        points: [
+          [0, 0],
+          [w, h],
+        ],
+        strokeColor: stroke,
+        strokeStyle: "solid",
+        roughness: 1,
+        groupIds: [groupId],
+      } as ExcalidrawElementSkeleton);
+      return;
+    }
+
+    out.push({
+      type: part.type === "ellipse" ? "ellipse" : "rectangle",
+      id: elementId,
+      x,
+      y,
+      width: Math.max(1, w),
+      height: Math.max(1, h),
+      strokeColor: stroke,
+      backgroundColor: "transparent",
+      strokeStyle: "solid",
+      roughness: 1,
+      groupIds: [groupId],
+      ...(i === 0 && node.label.trim()
+        ? {
+            label: {
+              text: node.label.trim(),
+              fontSize: FONT_SIZE,
+              fontFamily: 1,
+              textAlign: "center" as const,
+              verticalAlign: "middle" as const,
+            },
+          }
+        : {}),
+    } as ExcalidrawElementSkeleton);
+  });
+
+  return out;
+}
+
 export function graphToSkeleton(
   graph: DiagramGraph,
   transform: RasterTransform,
@@ -236,7 +332,15 @@ export function graphToSkeleton(
     }
 
     idOf.set(node.id, id);
-    if (node.symbol === "cylinder") {
+    if (node.parts?.length) {
+      const built = partsSkeleton(node, box, id);
+      if (!built.length) {
+        idOf.delete(node.id);
+        warnings.push(`"${node.label || "a shape"}" had no usable parts — left as drawn`);
+        return;
+      }
+      skeleton.push(...built);
+    } else if (node.symbol === "cylinder") {
       skeleton.push(...cylinderSkeleton(node, box, id));
     } else {
       skeleton.push(nodeSkeleton(node, box, id));

@@ -21,6 +21,28 @@ export type NodeShape = (typeof NODE_SHAPES)[number];
  * what a closed shape is, we keep the user's ink rather than relabel a cylinder
  * as a rectangle.
  */
+export const PART_TYPES = ["rect", "ellipse", "line", "text"] as const;
+
+/**
+ * One primitive inside a node, described in fractions of the node's own box.
+ *
+ * This is the escape hatch from an enumerated shape vocabulary. Instead of a
+ * word for every symbol ("cylinder", "table", "cloud", …) — a list that can only
+ * ever be incomplete, and fails silently for whatever a stranger draws — the
+ * model describes the shape with the primitives Excalidraw already has.
+ *
+ * The output space stays closed and tiny: three geometry types plus text, four
+ * numbers each, all bounded to the box. Nothing here is cross-referential, so
+ * there are no ids or bindings to get wrong.
+ */
+export const NodePart = z.object({
+  type: z.enum(PART_TYPES),
+  /** x, y, w, h as fractions (0..1) of the node's bounding box. */
+  at: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+  /** Only for type "text". */
+  text: z.string().max(120).optional(),
+});
+
 export const SYMBOLS = ["cylinder"] as const;
 export type SymbolName = (typeof SYMBOLS)[number];
 
@@ -49,6 +71,8 @@ export const GraphNode = z.object({
   shape: z.enum(NODE_SHAPES).default("rect"),
   /** Set when the drawing is a standard symbol rather than a plain primitive. */
   symbol: z.enum(SYMBOLS).optional(),
+  /** How to build a shape that has no primitive: parts, in box fractions. */
+  parts: z.array(NodePart).max(16).optional(),
   bbox: BBox,
   /** Model's own confidence, when it volunteers one. Never trusted for control flow. */
   confidence: z.number().min(0).max(1).optional(),

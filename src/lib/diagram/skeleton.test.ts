@@ -260,6 +260,97 @@ describe("graph -> excalidraw skeleton", () => {
     expect((partial.skeleton as unknown as S[]).filter((s) => s.type === "arrow")).toHaveLength(0);
   });
 
+  it("builds a shape from parts — a drum, with no symbol vocabulary involved", () => {
+    const drum = graphToSkeleton(
+      DiagramGraph.parse({
+        nodes: [
+          {
+            id: "db",
+            label: "",
+            shape: "rect",
+            bbox: { x: 0, y: 0, w: 200, h: 300 },
+            parts: [
+              { type: "ellipse", at: [0, 0, 1, 0.16] },
+              { type: "ellipse", at: [0, 0.84, 1, 0.16] },
+              { type: "line", at: [0, 0.08, 0, 0.84] },
+              { type: "line", at: [1, 0.08, 0, 0.84] },
+            ],
+          },
+        ],
+        edges: [],
+      }),
+      identityTransform(),
+    );
+    const els = drum.skeleton as unknown as S[];
+    expect(els.filter((e) => e.type === "ellipse")).toHaveLength(2);
+    expect(els.filter((e) => e.type === "line")).toHaveLength(2);
+    // The first shape carries the node id so arrows can bind.
+    expect(els[0].id).toBe("n-rect-0");
+    // Top ellipse is one sixth of the way down a 300-tall box.
+    const top = els[0] as unknown as { height: number; y: number };
+    expect(Math.round(top.height)).toBe(48); // 0.16 of a 300-tall box
+  });
+
+  it("builds a divided table from parts — the B-tree box", () => {
+    const cells = ["1", "2", "3", "4", "5"];
+    const table = graphToSkeleton(
+      DiagramGraph.parse({
+        nodes: [
+          {
+            id: "root",
+            label: "",
+            shape: "rect",
+            bbox: { x: 100, y: 100, w: 500, h: 100 },
+            parts: [
+              { type: "rect", at: [0, 0, 1, 1] },
+              // four dividers, at 1/5 … 4/5
+              { type: "line", at: [0.2, 0, 0, 1] },
+              { type: "line", at: [0.4, 0, 0, 1] },
+              { type: "line", at: [0.6, 0, 0, 1] },
+              { type: "line", at: [0.8, 0, 0, 1] },
+              ...cells.map((c, i) => ({ type: "text" as const, at: [i / 5, 0.3, 0.2, 0.4], text: c })),
+            ],
+          },
+        ],
+        edges: [],
+      }),
+      identityTransform(),
+    );
+    const els = table.skeleton as unknown as S[];
+    expect(els.filter((e) => e.type === "line")).toHaveLength(4);
+    expect(els.filter((e) => e.type === "text")).toHaveLength(5);
+    expect(els.map((e) => e.text).filter(Boolean)).toEqual(cells);
+    // First cell sits at the left edge of the box.
+    const firstText = els.find((e) => e.text === "1") as unknown as { x: number };
+    expect(Math.round(firstText.x)).toBe(100);
+  });
+
+  it("clamps a part that points outside its box", () => {
+    const wild = graphToSkeleton(
+      DiagramGraph.parse({
+        nodes: [
+          {
+            id: "x",
+            label: "",
+            shape: "rect",
+            bbox: { x: 0, y: 0, w: 100, h: 100 },
+            parts: [{ type: "rect", at: [-0.5, 2, 3, 1] }],
+          },
+        ],
+        edges: [],
+      }),
+      identityTransform(),
+    );
+    const el = (wild.skeleton as unknown as S[])[0] as unknown as {
+      x: number;
+      y: number;
+      width: number;
+    };
+    expect(el.x).toBe(0);
+    expect(el.y).toBe(100); // clamped to the bottom edge, then snapped
+    expect(el.width).toBe(100); // never three times the box
+  });
+
   it("says nothing when there was nothing to change", () => {
     expect(warnings).toEqual([]);
   });
