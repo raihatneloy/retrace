@@ -351,6 +351,73 @@ describe("graph -> excalidraw skeleton", () => {
     expect(el.width).toBe(100); // never three times the box
   });
 
+  it("draws a divided box as adjacent rectangles sharing edges", () => {
+    const row = graphToSkeleton(
+      DiagramGraph.parse({
+        nodes: [
+          {
+            id: "root",
+            label: "",
+            shape: "rect",
+            cells: 3,
+            cellLabels: ["1", "2", "3"],
+            labelPosition: "below",
+            bbox: { x: 0, y: 0, w: 300, h: 100 },
+          },
+        ],
+        edges: [],
+      }),
+      identityTransform(),
+      { regularize: false },
+    );
+    const els = row.skeleton as unknown as S[];
+    const rects = els.filter((e) => e.type === "rectangle");
+
+    expect(rects).toHaveLength(3);
+    // Cells share edges: each starts where the previous one ends.
+    expect(rects.map((r) => Math.round((r as unknown as { x: number }).x))).toEqual([0, 100, 200]);
+    expect(els.map((e) => e.text).filter(Boolean)).toEqual(["1", "2", "3"]);
+  });
+
+  it("puts a label under the shape when that is where it was drawn", () => {
+    const under = graphToSkeleton(
+      DiagramGraph.parse({
+        nodes: [
+          {
+            id: "a",
+            label: "2",
+            shape: "rect",
+            labelPosition: "below",
+            bbox: { x: 0, y: 0, w: 100, h: 60 },
+          },
+        ],
+        edges: [],
+      }),
+      identityTransform(),
+      { regularize: false },
+    );
+    const els = under.skeleton as unknown as S[];
+    const container = els.find((e) => e.type === "rectangle")!;
+    // No bound text: the label is a separate element below the box.
+    expect(container.label).toBeUndefined();
+
+    const text = els.find((e) => e.type === "text") as unknown as { y: number };
+    expect(text.y).toBeGreaterThan(60);
+  });
+
+  it("keeps the label inside when no position is given", () => {
+    const inside = graphToSkeleton(
+      DiagramGraph.parse({
+        nodes: [{ id: "a", label: "api", shape: "rect", bbox: { x: 0, y: 0, w: 100, h: 60 } }],
+        edges: [],
+      }),
+      identityTransform(),
+      { regularize: false },
+    );
+    const container = (inside.skeleton as unknown as S[]).find((e) => e.type === "rectangle")!;
+    expect(container.label!.text).toBe("api");
+  });
+
   it("says nothing when there was nothing to change", () => {
     expect(warnings).toEqual([]);
   });

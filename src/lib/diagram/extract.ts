@@ -40,6 +40,15 @@ Rules:
 4. label is the handwriting, transcribed exactly as written. Do not correct
    spelling, do not expand abbreviations, do not invent a label. If a shape has
    no readable text, use an empty string.
+4b. If the writing sits OUTSIDE the shape — digits under a bracket, a note beside
+   an arrow, a caption above a box — set labelPosition to "below", "left",
+   "right" or "above" to match what you see. Default is "inside". Do not drag
+   writing into the shape to make the label neat.
+4c. A box divided into N cells (a table row, a B-tree node with several keys) is
+   ONE node with "cells": N and "cellLabels" in left-to-right order. It is not N
+   nodes, and the digits are not one label — a row of three cells with 1 2 3 under
+   them is cells:3, cellLabels:["1","2","3"], labelPosition:"below".
+
 5. edges are the arrows and connecting lines actually drawn. from/to must be
    node ids you defined. Do not invent a connection that is not drawn, and do
    not infer a sensible architecture — if the arrow is ambiguous, leave it out

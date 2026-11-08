@@ -1,6 +1,7 @@
 import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/data/transform";
 
-import { layout, edgeAnchors, type RasterTransform } from "./layout";
+import { layout, edgeAnchors, findOverlaps, type RasterTransform } from "./layout";
+import { regularize, type RegularizeReport } from "./regularize";
 import { pruneGraph, type DiagramGraph, type GraphNode } from "./schema";
 
 /**
@@ -55,6 +56,95 @@ export function slugId(
   return namespace ? `${namespace}-${base}` : base;
 }
 
+/**
+ * A label that is not inside its shape: under a bracket, beside an arrow, above
+ * a row. People draw writing there and expect it back there.
+ */
+function placedLabel(
+  id: string,
+  text: string,
+  box: { x: number; y: number; w: number; h: number },
+  position: "inside" | "below" | "above" | "left" | "right",
+): ExcalidrawElementSkeleton | null {
+  if (!text.trim()) return null;
+  const gap = 12;
+  const lineHeight = FONT_SIZE * 1.25;
+  const geometry =
+    position === "inside"
+      ? { x: box.x, y: box.y + box.h / 2 - lineHeight / 2, width: Math.max(box.w, 20), height: lineHeight, textAlign: "center" as const }
+      : position === "below"
+      ? { x: box.x, y: box.y + box.h + gap, width: Math.max(box.w, text.length * 8), height: lineHeight, textAlign: "center" as const }
+      : position === "above"
+        ? { x: box.x, y: box.y - lineHeight - gap, width: Math.max(box.w, text.length * 8), height: lineHeight, textAlign: "center" as const }
+        : position === "left"
+          ? { x: box.x - text.length * 9 - gap, y: box.y + box.h / 2 - lineHeight / 2, width: text.length * 9 + 4, height: lineHeight, textAlign: "right" as const }
+          : { x: box.x + box.w + gap, y: box.y + box.h / 2 - lineHeight / 2, width: text.length * 9 + 4, height: lineHeight, textAlign: "left" as const };
+
+  return {
+    type: "text",
+    id,
+    ...geometry,
+    text,
+    fontSize: FONT_SIZE,
+    fontFamily: 1,
+    verticalAlign: "middle",
+    strokeColor: "#1e1e1e",
+  } as ExcalidrawElementSkeleton;
+}
+
+/**
+ * A divided box as N adjacent rectangles sharing edges — how the drawing
+ * actually reads — rather than one box with divider lines, which do not resize
+ * with it and cannot be edited per cell.
+ */
+function cellsSkeleton(
+  node: GraphNode,
+  box: { x: number; y: number; w: number; h: number },
+  id: string,
+): ExcalidrawElementSkeleton[] {
+  const count = node.cells!;
+  const groupId = `${id}-group`;
+  const cellW = box.w / count;
+  const out: ExcalidrawElementSkeleton[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const x = box.x + cellW * i;
+    const width = i === count - 1 ? box.x + box.w - x : cellW;
+    out.push({
+      type: "rectangle",
+      id: i === 0 ? id : `${id}-c${i}`,
+      x,
+      y: box.y,
+      width,
+      height: box.h,
+      strokeColor: "#1e1e1e",
+      backgroundColor: "transparent",
+      strokeStyle: "solid",
+      roughness: 1,
+      groupIds: [groupId],
+    } as ExcalidrawElementSkeleton);
+
+    const text = node.cellLabels?.[i];
+    if (text) {
+      const placed = placedLabel(
+        `${id}-t${i}`,
+        text,
+        { x, y: box.y, w: width, h: box.h },
+        node.labelPosition ?? "inside",
+      );
+      if (placed) out.push(placed);
+    }
+  }
+
+  // A node-level label still belongs somewhere.
+  const position = node.labelPosition ?? "inside";
+  const placedNodeLabel =
+    position === "inside" ? null : placedLabel(`${id}-label`, node.label, box, position);
+  if (placedNodeLabel) out.push(placedNodeLabel);
+
+  return out;
+}
+
 function nodeSkeleton(
   node: GraphNode,
   box: { x: number; y: number; w: number; h: number },
@@ -95,7 +185,7 @@ function nodeSkeleton(
     backgroundColor: "transparent",
     strokeStyle: "solid",
     roughness: 1,
-    ...(label
+    ...(label && (node.labelPosition ?? "inside") === "inside"
       ? {
           // Bound text: double-click edits it, the box resizes around it, and
           // the label is a real text element, not a picture of a label.
@@ -298,11 +388,18 @@ function partsSkeleton(
 export function graphToSkeleton(
   graph: DiagramGraph,
   transform: RasterTransform,
-  opts: { idNamespace?: string } = {},
-): { skeleton: ExcalidrawElementSkeleton[]; warnings: string[] } {
+  opts: { idNamespace?: string; regularize?: boolean } = {},
+): { skeleton: ExcalidrawElementSkeleton[]; warnings: string[]; layoutReport?: RegularizeReport } {
   const ns = opts.idNamespace ?? "";
   const { graph: clean, droppedEdges, duplicateNodeIds } = pruneGraph(graph);
-  const { boxes, overlaps } = layout(clean, transform);
+  const laid = layout(clean, transform);
+
+  // Adaptive: snap near-regular structure, leave deliberate arrangements alone.
+  const regular = opts.regularize === false
+    ? { boxes: laid.boxes, report: { rows: 0, columns: 0, trees: 0, maxShift: 0, applied: false, reason: "disabled" } }
+    : regularize(clean, laid.boxes);
+  const boxes = regular.boxes;
+  const overlaps = findOverlaps(boxes);
 
   const warnings: string[] = [];
   if (droppedEdges.length > 0) {
@@ -332,7 +429,9 @@ export function graphToSkeleton(
     }
 
     idOf.set(node.id, id);
-    if (node.parts?.length) {
+    if (node.cells && node.cells > 1) {
+      skeleton.push(...cellsSkeleton(node, box, id));
+    } else if (node.parts?.length) {
       const built = partsSkeleton(node, box, id);
       if (!built.length) {
         idOf.delete(node.id);
@@ -344,6 +443,13 @@ export function graphToSkeleton(
       skeleton.push(...cylinderSkeleton(node, box, id));
     } else {
       skeleton.push(nodeSkeleton(node, box, id));
+      // A label outside the shape is a separate element; the container only
+      // carries bound text when the writing actually sits inside it.
+      const position = node.labelPosition ?? "inside";
+      if (position !== "inside" && node.label.trim()) {
+        const placed = placedLabel(`${id}-label`, node.label, box, position);
+        if (placed) skeleton.push(placed);
+      }
     }
   });
 
@@ -392,5 +498,5 @@ export function graphToSkeleton(
     } as ExcalidrawElementSkeleton);
   });
 
-  return { skeleton, warnings };
+  return { skeleton, warnings, layoutReport: regular.report };
 }

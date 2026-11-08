@@ -21,6 +21,8 @@ export type NodeShape = (typeof NODE_SHAPES)[number];
  * what a closed shape is, we keep the user's ink rather than relabel a cylinder
  * as a rectangle.
  */
+export const LABEL_POSITIONS = ["inside", "below", "above", "left", "right"] as const;
+
 export const PART_TYPES = ["rect", "ellipse", "line", "text"] as const;
 
 /**
@@ -73,6 +75,20 @@ export const GraphNode = z.object({
   symbol: z.enum(SYMBOLS).optional(),
   /** How to build a shape that has no primitive: parts, in box fractions. */
   parts: z.array(NodePart).max(16).optional(),
+  /**
+   * Where the writing sits relative to the shape. People draw the label under a
+   * bracket, beside an arrow, above a table row — forcing every label inside the
+   * box is a fidelity loss, not a feature.
+   */
+  labelPosition: z.enum(LABEL_POSITIONS).optional(),
+  /**
+   * A box divided into N cells (a table row, a B-tree node). Rendered as N
+   * adjacent rectangles sharing edges, not one box with divider lines: each cell
+   * then moves, resizes and takes text on its own.
+   */
+  cells: z.number().int().min(2).max(12).optional(),
+  /** One entry per cell, used with `cells`. */
+  cellLabels: z.array(z.string().max(40)).max(12).optional(),
   bbox: BBox,
   /** Model's own confidence, when it volunteers one. Never trusted for control flow. */
   confidence: z.number().min(0).max(1).optional(),
