@@ -67,15 +67,18 @@ Rules:
 12. notes is one short sentence about anything you could not read or were unsure
     about. Leave it null when everything was clear.
 
-If a <document> block accompanies the image, it is the same sketch described
-twice:
+If an <excalidraw_file> block accompanies the image, it is the same drawing
+described twice, and it is the complete editor document — every element, every
+point of every freehand stroke, every binding:
 
-- the document is authoritative for geometry (exact stroke bounds) and for any
+- the file is authoritative for geometry (exact stroke coordinates) and for any
   typed text
 - the image is authoritative for what an object IS (a box, a database symbol),
   for which strokes belong together, and for handwriting
-- when they disagree, place shapes where the document says and describe them as
-  the image shows, and mention the disagreement in notes
+- use the stroke points to decide what is one object: strokes that share edges,
+  sit on one line, or meet at a corner usually belong to one shape or one row
+- when they disagree, place shapes where the file says and describe them as the
+  image shows, and mention the disagreement in notes
 
 Prefer missing a faint arrow over inventing a confident one. Never omit a shape
 you can see.`;
@@ -91,6 +94,19 @@ export type ExtractInput = {
    * Exact ink geometry and typed text; the image supplies meaning.
    */
   sceneDigest?: unknown;
+  /**
+   * The whole .excalidraw document, verbatim — every element and every point of
+   * every stroke, nothing filtered or summarised.
+   *
+   * The digest was a guess at what a model needs, and a lossy one: it reduced a
+   * stroke to a bounding box and a point count, which throws away the shape that
+   * made it a table row rather than a rectangle. This sends the source instead
+   * and lets the model decide what matters.
+   */
+  scene?: unknown;
+  /** Image pixels per scene unit, so the two coordinate frames can be reconciled. */
+  scale?: number;
+  origin?: { x: number; y: number };
 };
 
 export type ExtractResult = {
@@ -98,14 +114,16 @@ export type ExtractResult = {
   usage?: { inputTokens?: number; outputTokens?: number };
 };
 
-export async function extractGraph({
-  model,
+export function buildInstructions({
   imageDataUrl,
   prompt,
   knownLabels,
   sceneDigest,
-}: ExtractInput): Promise<ExtractResult> {
-  const instructions = [
+  scene,
+  scale,
+  origin,
+}: Omit<ExtractInput, "model">): string {
+  return [
     imageDataUrl
       ? "Convert this sketch into a graph."
       : "Produce a diagram graph for this description.",
@@ -113,12 +131,56 @@ export async function extractGraph({
     knownLabels?.length
       ? `These labels already exist as typed text in the editor, so prefer them when you see something similar: ${knownLabels.join(", ")}.`
       : "",
-    sceneDigest
+    sceneDigest && !scene
       ? `The sketch came from a document. Its geometry is below, in pixels of the attached image. Use it for WHERE things are and for any typed text; use the image for WHAT a thing is and for handwriting.\n\n<document>\n${JSON.stringify(sceneDigest)}\n</document>`
+      : "",
+    scene
+      ? sceneBlock(scene, scale, origin)
       : "",
   ]
     .filter(Boolean)
     .join("\n\n");
+}
+
+/**
+ * The scene verbatim. No trimming, no field selection: the point of this
+ * experiment is to stop guessing what the model needs.
+ */
+function sceneBlock(scene: unknown, scale?: number, origin?: { x: number; y: number }): string {
+  const mapping =
+    scale && origin
+      ? `Coordinates in the document are Excalidraw scene units. The attached image is the same drawing rendered at ${scale}x, with scene point (${origin.x}, ${origin.y}) at image pixel (0, 0). To get image pixels: px = (scene - origin) * ${scale}. bbox in your answer is still a fraction of the image, so divide those pixels by the image size.`
+      : "Coordinates in the document are Excalidraw scene units.";
+
+  return [
+    "Below is the complete .excalidraw document for the drawing in the image: every element, every point of every freehand stroke, every binding, exactly as the editor has it.",
+    mapping,
+    "The document is authoritative for geometry and for typed text. The image is authoritative for what an object IS and for handwriting. When they disagree, trust the document for placement and the image for meaning.",
+    "<excalidraw_file>",
+    JSON.stringify(scene),
+    "</excalidraw_file>",
+  ].join("\n\n");
+}
+
+export async function extractGraph({
+  model,
+  imageDataUrl,
+  prompt,
+  knownLabels,
+  sceneDigest,
+  scene,
+  scale,
+  origin,
+}: ExtractInput): Promise<ExtractResult> {
+  const instructions = buildInstructions({
+    imageDataUrl,
+    prompt,
+    knownLabels,
+    sceneDigest,
+    scene,
+    scale,
+    origin,
+  });
 
   const { object, usage } = await generateObject({
     model,

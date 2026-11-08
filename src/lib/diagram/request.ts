@@ -33,6 +33,24 @@ export const DiagramRequest = z
     session: z.string().min(1).max(120).optional(),
     knownLabels: z.array(z.string().max(120)).max(200).optional(),
     /**
+     * The whole .excalidraw document, verbatim. Uncapped on purpose: this branch
+     * exists to find out what the model does with the source instead of our
+     * summary of it.
+     */
+    scene: z
+      .object({
+        type: z.string().optional(),
+        version: z.number().optional(),
+        elements: z.array(z.record(z.string(), z.unknown())),
+        appState: z.record(z.string(), z.unknown()).optional(),
+        files: z.record(z.string(), z.unknown()).optional(),
+      })
+      .passthrough()
+      .optional(),
+    /** Image pixels per scene unit, so the model can reconcile coordinates. */
+    scale: z.number().positive().max(8).optional(),
+    origin: z.object({ x: z.number(), y: z.number() }).optional(),
+    /**
      * Compact projection of the source document (exact ink bounds, typed text,
      * bindings). Optional: photos have no document behind them.
      */

@@ -15,7 +15,6 @@ import { DiagramGraph } from "@/lib/diagram/schema";
 import { identityTransform, toSceneBox } from "@/lib/diagram/layout";
 import { graphToElements } from "@/lib/diagram/to-elements";
 import { rasterizeDrawing } from "@/lib/diagram/rasterize";
-import { buildSceneDigest } from "@/lib/diagram/digest";
 import { strokesToConsume } from "@/lib/diagram/consume";
 import {
   getServerSettings,
@@ -133,12 +132,24 @@ export function Canvas() {
       const raster = await rasterizeDrawing(targets);
 
       setStatus({ kind: "idle", text: "Reading the drawing…" });
-      // Send the scene alongside the image: exact ink bounds beat eyeballed
-      // proportions (measured: centre error 7.4px -> 0.7px on the corpus).
-      const digest = buildSceneDigest(targets, raster.transform);
+      // EXPERIMENT (branch exp/raw-scene-prompt): send the whole document, not a
+      // summary of it. The digest turned every stroke into a bounding box and a
+      // point count, which is exactly the information that distinguishes a table
+      // row from a rectangle. Dropping the summary and shipping the source is the
+      // cheapest way to find out whether the summary was the problem.
+      const scene = {
+        type: "excalidraw",
+        version: 2,
+        source: "retrace",
+        elements: all,
+        appState: { viewBackgroundColor: api.getAppState().viewBackgroundColor },
+        files: api.getFiles?.() ?? {},
+      };
       const payload = await requestGraph(settings, {
         image: { dataUrl: raster.dataUrl, width: raster.width, height: raster.height },
-        digest,
+        scene,
+        scale: raster.transform.scale,
+        origin: { x: raster.transform.originX, y: raster.transform.originY },
       });
 
       const graph = DiagramGraph.parse(payload.graph);
@@ -275,6 +286,9 @@ async function requestGraph(
     image?: { dataUrl: string; width: number; height: number };
     prompt?: string;
     digest?: unknown;
+    scene?: unknown;
+    scale?: number;
+    origin?: { x: number; y: number };
   },
 ): Promise<GraphPayload> {
   const res = await fetch("/api/diagram", {

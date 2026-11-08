@@ -78,6 +78,9 @@ export async function POST(request: Request) {
         prompt: input.prompt,
         knownLabels: input.knownLabels,
         sceneDigest: input.digest,
+        scene: input.scene,
+        scale: input.scale,
+        origin: input.origin,
       }),
     );
 
@@ -89,6 +92,8 @@ export async function POST(request: Request) {
         ms: Date.now() - started,
         usage,
         imageBytes: image?.bytes,
+        sceneBytes: input.scene ? JSON.stringify(input.scene).length : undefined,
+        sceneElements: input.scene?.elements.length,
       },
     });
   } catch (err) {
