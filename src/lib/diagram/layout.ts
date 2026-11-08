@@ -136,8 +136,8 @@ export type LaidOutGraph = {
 export function layout(graph: DiagramGraph, t: RasterTransform): LaidOutGraph {
   const boxes = new Map<string, SceneBox>();
   const nodes: GraphNode[] = graph.nodes.map((n) => {
-    const box = toSceneBox(n.bbox, t);
-    boxes.set(n.id, box);
+    // Nodes described by structure alone have no coordinates to map.
+    if (n.bbox) boxes.set(n.id, toSceneBox(n.bbox, t));
     return { ...n };
   });
   return { graph: { ...graph, nodes }, boxes, overlaps: findOverlaps(boxes) };

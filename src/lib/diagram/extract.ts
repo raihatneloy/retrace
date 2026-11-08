@@ -21,11 +21,35 @@ Rules:
 
 1. One node per drawn shape. A hand-drawn box is often one wobbly stroke; a
    sloppy rectangle is still a rectangle. Report it once, not once per stroke.
-2. bbox is {x, y, w, h} given as FRACTIONS of the image, not pixels: 0 is the
-   left/top edge of the image and 1 is the right/bottom edge. A shape in the
-   top-left quarter might be {"x":0.05,"y":0.10,"w":0.20,"h":0.15}. Judge where
-   the shape sits proportionally — do not convert to pixels, and do not tidy
-   up, centre or re-space the layout.
+2. PLACEMENT. You are bad at estimating coordinates and good at seeing what
+   belongs together. So describe structure, not arithmetic.
+
+   If shapes are lined up, stacked, or inside a boundary, report that with
+   "groups" and DO NOT give those shapes a bbox:
+
+     groups: [{id:"g1", axis:"row"|"column", members:[ids in reading order],
+               gap:"tight"|"normal"|"wide"}]
+
+   - members are node ids, or other group ids. Groups nest: a column of rows is
+     tiers; a row of rows is a tree; a row inside a container is a cluster.
+   - "size" on a node is "s", "m" or "l" — relative width only. Never pixels.
+   - "container" is the id of the shape this one is drawn inside (a service in
+     a cluster, a pod in a namespace).
+   - Counting members and their order is a job you can do reliably. Dividing a
+     space into equal parts is not — that is why the group exists.
+
+   Give bbox ONLY for shapes you could not place in any group: {x, y, w, h} as
+   FRACTIONS of the image, 0 to 1, not pixels. A shape in the top-left quarter
+   might be {"x":0.05,"y":0.10,"w":0.20,"h":0.15}. Never tidy, centre or
+   re-space those by hand.
+
+   Every shape needs one or the other: a group, or a bbox. A shape with neither
+   cannot be placed and ends up below the drawing.
+
+2b. Real drawings are messy and large. Group what is clearly grouped and use
+   bboxes for the rest — a half-structured drawing is a correct answer, not a
+   failure. Do not invent structure to look tidy, and do not skip shapes because
+   the drawing is crowded.
 3. shape is "rect" for boxes, "ellipse" for circles and ovals, "diamond" for
    decision/rhombus shapes, and "text" for handwriting that is not inside any
    shape (an arrow annotation, a title, a floating note).

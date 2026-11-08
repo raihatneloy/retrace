@@ -1,6 +1,7 @@
 import type { ExcalidrawElementSkeleton } from "@excalidraw/excalidraw/data/transform";
 
-import { layout, edgeAnchors, findOverlaps, type RasterTransform } from "./layout";
+import { edgeAnchors, findOverlaps, type RasterTransform, type SceneBox } from "./layout";
+import { layoutGraph } from "./structure";
 import { regularize, type RegularizeReport } from "./regularize";
 import { pruneGraph, type DiagramGraph, type GraphNode } from "./schema";
 
@@ -389,10 +390,17 @@ export function graphToSkeleton(
   graph: DiagramGraph,
   transform: RasterTransform,
   opts: { idNamespace?: string; regularize?: boolean } = {},
-): { skeleton: ExcalidrawElementSkeleton[]; warnings: string[]; layoutReport?: RegularizeReport } {
+): {
+  skeleton: ExcalidrawElementSkeleton[];
+  warnings: string[];
+  layoutReport?: RegularizeReport;
+  boxes: Map<string, SceneBox>;
+} {
   const ns = opts.idNamespace ?? "";
   const { graph: clean, droppedEdges, duplicateNodeIds } = pruneGraph(graph);
-  const laid = layout(clean, transform);
+  // Structure-first: clusters the model grouped are re-spaced by arithmetic;
+  // everything else keeps the coordinates it was drawn at.
+  const laid = layoutGraph(clean, transform);
 
   // Adaptive: snap near-regular structure, leave deliberate arrangements alone.
   const regular = opts.regularize === false
@@ -418,7 +426,11 @@ export function graphToSkeleton(
   const skeleton: ExcalidrawElementSkeleton[] = [];
 
   clean.nodes.forEach((node, i) => {
-    const box = boxes.get(node.id)!;
+    const box = boxes.get(node.id);
+    if (!box) {
+      warnings.push(`"${node.label || node.id}" had nowhere to go — left out`);
+      return;
+    }
     const id = slugId("n", node.label || node.symbol || node.shape, i, ns);
 
     // Nothing we could honestly call a shape: emit no element, so the strokes
@@ -498,5 +510,10 @@ export function graphToSkeleton(
     } as ExcalidrawElementSkeleton);
   });
 
-  return { skeleton, warnings, layoutReport: regular.report };
+  return {
+    skeleton,
+    warnings,
+    layoutReport: regular.report,
+    boxes: boxes as Map<string, SceneBox>,
+  };
 }

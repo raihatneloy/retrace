@@ -12,7 +12,7 @@ import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 
 import demoGraph from "../../fixtures/graph-sketch2.json";
 import { DiagramGraph } from "@/lib/diagram/schema";
-import { identityTransform, toSceneBox } from "@/lib/diagram/layout";
+import { identityTransform } from "@/lib/diagram/layout";
 import { graphToElements } from "@/lib/diagram/to-elements";
 import { rasterizeDrawing } from "@/lib/diagram/rasterize";
 import { strokesToConsume } from "@/lib/diagram/consume";
@@ -156,13 +156,15 @@ export function Canvas() {
       // Every conversion gets its own id namespace. Deterministic ids across
       // conversions collide, and a collision silently unbinds the arrows of the
       // diagram that was already on the canvas.
-      const { elements, warnings } = await graphToElements(graph, raster.transform, {
+      const { elements, warnings, boxes: placed } = await graphToElements(graph, raster.transform, {
         idNamespace: newNamespace(),
       });
 
       // Only strokes the answer actually accounts for may be removed. An
       // under-detected sketch must never silently lose the parts it missed.
-      const nodeBoxes = new Map(graph.nodes.map((n) => [n.id, toSceneBox(n.bbox, raster.transform)]));
+      // The boxes the converter actually used — structure-aware, so a grouped
+      // node is protected where it landed, not where the model guessed.
+      const nodeBoxes = placed;
       const edgeBoxes = graph.edges.flatMap((e) => {
         const from = nodeBoxes.get(e.from);
         const to = nodeBoxes.get(e.to);

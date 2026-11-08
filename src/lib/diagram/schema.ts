@@ -89,7 +89,22 @@ export const GraphNode = z.object({
   cells: z.number().int().min(2).max(12).optional(),
   /** One entry per cell, used with `cells`. */
   cellLabels: z.array(z.string().max(40)).max(12).optional(),
-  bbox: BBox,
+  /**
+   * Where the model saw it. Optional: when the drawing has clear structure the
+   * model describes the structure instead of guessing coordinates, and the
+   * layout engine computes the box. See `groups`.
+   */
+  bbox: BBox.optional(),
+  /**
+   * Relative size, never pixels. A model is a poor estimator of absolute
+   * dimensions and a decent judge of "this one is bigger than that one".
+   */
+  size: z.enum(["s", "m", "l"]).optional(),
+  /**
+   * Id of a node this one is drawn inside — a service in a cluster, a pod in a
+   * namespace. Boundaries are the backbone of architecture diagrams.
+   */
+  container: z.string().optional(),
   /** Model's own confidence, when it volunteers one. Never trusted for control flow. */
   confidence: z.number().min(0).max(1).optional(),
 });
@@ -102,8 +117,29 @@ export const GraphEdge = z.object({
   arrowhead: z.boolean().default(true),
 });
 
+/**
+ * A set of shapes that belong together along one axis.
+ *
+ * This is how the model stops doing arithmetic. Instead of estimating four
+ * coordinates per shape — the thing vision models are worst at, and the reason
+ * rows come back crooked — it says "these five sit in a row, in this order" and
+ * the layout engine does the division.
+ *
+ * Groups nest: a member may be another group's id. Tiers, grids and trees are
+ * all rows and columns containing rows and columns.
+ */
+export const GraphGroup = z.object({
+  id: z.string().min(1),
+  axis: z.enum(["row", "column"]),
+  /** Node ids or other group ids, in reading order. */
+  members: z.array(z.string().min(1)).min(1).max(40),
+  gap: z.enum(["tight", "normal", "wide"]).optional(),
+});
+
 export const DiagramGraph = z.object({
   nodes: z.array(GraphNode).min(1).max(120),
+  /** Structure the model is confident about. Unlisted shapes keep their bbox. */
+  groups: z.array(GraphGroup).max(40).optional(),
   edges: z.array(GraphEdge).default([]),
   /** Optional prose the model returns about what it could not read. */
   notes: z.string().nullish(),
@@ -112,6 +148,7 @@ export const DiagramGraph = z.object({
 export type BBox = z.infer<typeof BBox>;
 export type GraphNode = z.infer<typeof GraphNode>;
 export type GraphEdge = z.infer<typeof GraphEdge>;
+export type GraphGroup = z.infer<typeof GraphGroup>;
 export type DiagramGraph = z.infer<typeof DiagramGraph>;
 
 /**
