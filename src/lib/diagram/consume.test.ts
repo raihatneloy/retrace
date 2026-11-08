@@ -88,6 +88,24 @@ describe("strokesToConsume", () => {
     expect(decision.consume).toContain("backend");
   });
 
+  it("consumes a wobbly arrow whose path lies in the corridor", () => {
+    // The bbox of a hand-drawn arrow is far wider than its line, so bounding-box
+    // coverage said "not explained" and we kept the ink while also drawing a
+    // converted arrow on top — two marks for one arrow.
+    const wobbly: { id: string; box: ReturnType<typeof box>; points: [number, number][] } = {
+      id: "wobbly-arrow",
+      box: box(200, 300, 200, 180), // tall bbox, because the stroke wanders
+      points: Array.from({ length: 20 }, (_, i) => [210 + i * 9, 320 + i * 1.5] as [number, number]),
+    };
+    const decision = strokesToConsume(
+      [wobbly],
+      [box(150, 250, 120, 100), box(380, 250, 120, 100)],
+      [{ from: box(150, 250, 120, 100), to: box(380, 250, 120, 100) }],
+    );
+    expect(decision.consume).toEqual(["wobbly-arrow"]);
+    expect(decision.keep).toEqual([]);
+  });
+
   it("keeps an icon inside a box that the model merged into it", () => {
     // The merged case: a database symbol inside a service box, reported as one
     // node. The symbol sits outside the reported bbox, so it survives.

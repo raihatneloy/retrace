@@ -161,6 +161,10 @@ export function Canvas() {
         targets.map((el) => ({
           id: el.id,
           box: { x: el.x, y: el.y, w: el.width, h: el.height },
+          // Absolute ink path: points are stored relative to the element.
+          points: (el as unknown as { points?: ReadonlyArray<readonly [number, number]> }).points?.map(
+            ([px, py]) => [el.x + px, el.y + py] as const,
+          ),
         })),
         [...nodeBoxes.values()],
         edgeBoxes,

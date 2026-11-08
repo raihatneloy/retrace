@@ -9,7 +9,17 @@ import { centerOf, type SceneBox } from "./layout";
  * those.
  */
 
-export type StrokeBox = { id: string; box: SceneBox };
+export type StrokeBox = {
+  id: string;
+  box: SceneBox;
+  /**
+   * The ink itself, in scene coordinates. Without it we can only sample the
+   * bounding box — and a wobbly hand-drawn arrow's box is much wider than its
+   * line, so it reads as "not covered" and survives while a converted arrow is
+   * drawn on top of it. Two marks of the same arrow is the duplicate the user sees.
+   */
+  points?: ReadonlyArray<readonly [number, number]>;
+};
 export type Region = { box: SceneBox };
 
 const PAD_NODE = 10;
@@ -20,20 +30,30 @@ const PAD_EDGE = 34;
  * a grid rather than summing intersections matters because corridors now consist
  * of many overlapping boxes, and summing would count the same pixel repeatedly.
  */
-function coveredRatio(stroke: SceneBox, regions: Region[]): number {
+function coveredRatio(stroke: StrokeBox, regions: Region[]): number {
+  const inside = (x: number, y: number) =>
+    regions.some(
+      (r) => x >= r.box.x && x <= r.box.x + r.box.w && y >= r.box.y && y <= r.box.y + r.box.h,
+    );
+
+  // Preferred: sample the actual ink. A stroke is "explained" when the answer
+  // covers its path, not when it covers its bounding box.
+  if (stroke.points?.length) {
+    let hits = 0;
+    for (const [x, y] of stroke.points) if (inside(x, y)) hits++;
+    return hits / stroke.points.length;
+  }
+
   const N = 5;
-  let inside = 0;
+  let hits = 0;
   for (let i = 0; i < N; i++) {
     for (let j = 0; j < N; j++) {
-      const x = stroke.x + (stroke.w * (i + 0.5)) / N;
-      const y = stroke.y + (stroke.h * (j + 0.5)) / N;
-      const hit = regions.some(
-        (r) => x >= r.box.x && x <= r.box.x + r.box.w && y >= r.box.y && y <= r.box.y + r.box.h,
-      );
-      if (hit) inside++;
+      const x = stroke.box.x + (stroke.box.w * (i + 0.5)) / N;
+      const y = stroke.box.y + (stroke.box.h * (j + 0.5)) / N;
+      if (inside(x, y)) hits++;
     }
   }
-  return inside / (N * N);
+  return hits / (N * N);
 }
 
 /** Groups strokes that belong to the same drawing, for reporting. */
@@ -131,7 +151,7 @@ export function strokesToConsume(
   const consume: string[] = [];
   const keep: string[] = [];
   for (const stroke of strokes) {
-    (coveredRatio(stroke.box, regions) >= EXPLAINED ? consume : keep).push(stroke.id);
+    (coveredRatio(stroke, regions) >= EXPLAINED ? consume : keep).push(stroke.id);
   }
 
   return { consume, keep, clusters: clusterStrokes(strokes).length };
